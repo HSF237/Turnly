@@ -21,7 +21,9 @@ const OSM_STYLE: StyleSpecification = {
   layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
 };
 
-const STYLE = KEY ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${KEY}` : OSM_STYLE;
+// Hasan's custom MapTiler map (made in the MapTiler map editor). Override with VITE_MAPTILER_MAP_ID.
+const MAP_ID = (import.meta.env.VITE_MAPTILER_MAP_ID as string | undefined) || '01a211b7-ed7f-7f0e-b79f-aa08cc5169ca';
+const STYLE = KEY ? `https://api.maptiler.com/maps/${MAP_ID}/style.json?key=${KEY}` : OSM_STYLE;
 
 // Kannur, Kerala as a friendly default centre.
 export const DEFAULT_CENTER = { lat: 11.8745, lng: 75.3704 };
