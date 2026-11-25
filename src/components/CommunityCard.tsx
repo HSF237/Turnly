@@ -8,7 +8,7 @@ import { timeAgo } from '../lib/time';
 import type { CommunityPlace } from '../lib/types';
 
 /** Carousel card for a place kept live by community reports. */
-export default function CommunityCard({ place, i = 0 }: { place: CommunityPlace; i?: number }) {
+export default function CommunityCard({ place, i = 0, wide = false }: { place: CommunityPlace; i?: number; wide?: boolean }) {
   const est = communityEstimate(place.reports ?? []);
   return (
     <motion.div
@@ -17,7 +17,7 @@ export default function CommunityCard({ place, i = 0 }: { place: CommunityPlace;
       viewport={{ once: true }}
       transition={{ delay: Math.min(i, 6) * 0.06 }}
       whileHover={{ y: -6 }}
-      className="w-[15rem] shrink-0 snap-start"
+      className={`${wide ? 'w-full' : 'w-[15rem]'} shrink-0 snap-start`}
     >
       <Link to={`/explore?c=${place.id}`} className="group block overflow-hidden rounded-3xl bg-white shadow-soft ring-1 ring-slate-200/70 transition-shadow hover:shadow-lift">
         <div className="relative h-28 overflow-hidden">

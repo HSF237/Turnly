@@ -265,3 +265,17 @@ export function useCommunity() {
   if (mock) return { places: mock.community ?? [], loading: false };
   return { places: all, loading: loading && !samples.length };
 }
+
+/** True while a CSS media query matches (re-renders when it changes). */
+export function useMediaQuery(query: string) {
+  const get = () => (typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(query).matches : false);
+  const [match, setMatch] = useState(get);
+  useEffect(() => {
+    const m = window.matchMedia(query);
+    const on = () => setMatch(m.matches);
+    on();
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, [query]);
+  return match;
+}

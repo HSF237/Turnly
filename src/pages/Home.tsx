@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, ChevronLeft, ChevronRight, Crosshair, MapPinned, Search, Sparkles, Store, Wand2 } from 'lucide-react';
 import CategoryArt from '../components/CategoryArt';
+import HomeDesktop from './HomeDesktop';
 import CityPulse from '../components/CityPulse';
 import Footer from '../components/Footer';
 import LiveFeed from '../components/LiveFeed';
@@ -15,7 +16,7 @@ import CommunityCard from '../components/CommunityCard';
 import SplitFlap from '../components/SplitFlap';
 import TokenCard from '../components/TokenCard';
 import { Skeleton } from '../components/States';
-import { useAuth, useCommunity, useGeolocation, usePlaces } from '../lib/hooks';
+import { useAuth, useCommunity, useGeolocation, useMediaQuery, usePlaces } from '../lib/hooks';
 import { formatMinutes, LEVEL_STYLE, placeWaitMinutes, waitLevel } from '../lib/predict';
 import { allRememberedTickets } from '../lib/queue';
 import { distanceM, todayKey } from '../lib/time';
@@ -137,7 +138,7 @@ function HeroLive({ items }: { items: { p: Place; min: number }[] }) {
   );
 }
 
-export default function Home() {
+function HomeMobile() {
   useTitle('');
   const { user, isMember } = useAuth();
   const { places, loading } = usePlaces();
@@ -493,4 +494,10 @@ export default function Home() {
       <Footer />
     </div>
   );
+}
+
+/** Laptops and desktops get their own dashboard-style home; phones and tablets keep this one. */
+export default function Home() {
+  const wide = useMediaQuery('(min-width: 1280px)');
+  return wide ? <HomeDesktop /> : <HomeMobile />;
 }
