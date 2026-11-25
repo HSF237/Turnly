@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Clock, MapPin, Minus, Plus, Users } from 'lucide-react';
+import { Clock, MapPin, Minus, Plus, User, Users } from 'lucide-react';
+import Aurora from '../components/Aurora';
 import WaitBadge from '../components/WaitBadge';
+import PrintTicket from '../components/PrintTicket';
 import { Empty, ErrorNote, Spinner } from '../components/States';
 import { ensureGuest } from '../lib/firebase';
 import { usePlace } from '../lib/hooks';
@@ -21,6 +23,7 @@ export default function Join() {
   const [party, setParty] = useState(1);
   const [busy, setBusy] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [printed, setPrinted] = useState<{ id: string; number: number } | null>(null);
 
   // Already holding a ticket here today? Go straight to it.
   useEffect(() => {
@@ -44,11 +47,14 @@ export default function Join() {
       const user = await ensureGuest();
       localStorage.setItem(NAME_KEY, name);
       const t = await joinQueue(place.id, { name: name || 'Guest', partySize: party, uid: user.uid });
-      rememberTicket(place.id, t.id);
       if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().catch(() => {});
       }
-      navigate(`/t/${place.id}/${t.id}`, { replace: true });
+      setPrinted(t);
+      setTimeout(() => {
+        rememberTicket(place.id, t.id);
+        navigate(`/t/${place.id}/${t.id}`, { replace: true });
+      }, 2600);
     } catch (err) {
       setJoinError((err as Error).message);
       setBusy(false);
@@ -56,7 +62,9 @@ export default function Join() {
   };
 
   return (
-    <div className="mx-auto max-w-md px-4 py-8">
+    <div className="relative isolate mx-auto max-w-md px-4 py-8">
+      <Aurora />
+      {printed && <PrintTicket number={printed.number} placeName={place.name} name={name || 'Guest'} />}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden">
         <div className="bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white">
           <p className="text-sm font-semibold text-brand-100">
@@ -77,6 +85,29 @@ export default function Join() {
               <p className="flex items-center gap-1 text-xs text-brand-100"><Clock size={12} /> Your wait</p>
               <p className="text-3xl font-extrabold">{minutes === null ? '—' : formatMinutes(minutes)}</p>
             </div>
+          </div>
+          {/* The line, visualised */}
+          <div className="mt-4 flex items-center gap-1.5">
+            {Array.from({ length: Math.min(waiting, 9) }, (_, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 + i * 0.06 }}
+                className="grid h-7 w-7 place-items-center rounded-full bg-white/15"
+              >
+                <User size={14} />
+              </motion.span>
+            ))}
+            {waiting > 9 && <span className="text-xs font-bold text-brand-100">+{waiting - 9}</span>}
+            <motion.span
+              initial={{ opacity: 0, scale: 0.4 }}
+              animate={{ opacity: 1, scale: [1, 1.15, 1] }}
+              transition={{ delay: 0.9, scale: { repeat: Infinity, duration: 1.6 } }}
+              className="grid h-7 w-7 place-items-center rounded-full bg-sun-400 text-[10px] font-extrabold text-slate-900"
+            >
+              You
+            </motion.span>
           </div>
         </div>
 

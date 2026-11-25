@@ -46,14 +46,15 @@ interface Props {
   className?: string;
 }
 
-function markerEl(p: Place, selected: boolean, stop?: number) {
+function markerEl(p: Place, selected: boolean, stop?: number, drop = false, delay = 0) {
   const min = placeWaitMinutes(p);
   const lvl = waitLevel(min);
   const color = LEVEL_STYLE[lvl].hex;
   const el = document.createElement('div');
-  el.className = 'turnly-marker';
+  el.className = drop ? 'turnly-marker drop' : 'turnly-marker';
+  el.style.setProperty('--d', `${delay}ms`);
   el.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 10px rgba(15,23,42,.18));transform:scale(${selected ? 1.12 : 1});transition:transform .2s">
+    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 10px rgba(15,23,42,.18));transform:scale(${selected ? 1.12 : 1});transition:transform .2s;animation-delay:${delay}ms">
       <div style="display:flex;align-items:center;gap:6px;background:white;border-radius:999px;padding:5px 10px 5px 6px;border:2px solid ${color};font:600 12px 'Plus Jakarta Sans',system-ui;color:#0f172a;white-space:nowrap">
         ${
           stop
@@ -73,6 +74,7 @@ export default function MapView({ places = [], center, zoom = 13, selectedId, on
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<maplibregl.Marker[]>([]);
   const pickMarker = useRef<maplibregl.Marker | null>(null);
+  const seenIds = useRef<Set<string>>(new Set());
   const meMarker = useRef<maplibregl.Marker | null>(null);
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
@@ -102,8 +104,11 @@ export default function MapView({ places = [], center, zoom = 13, selectedId, on
     const m = map.current;
     if (!m) return;
     markers.current.forEach((mk) => mk.remove());
+    let fresh = 0;
     markers.current = places.map((p) => {
-      const el = markerEl(p, p.id === selectedId, order?.[p.id]);
+      const isNew = !seenIds.current.has(p.id);
+      seenIds.current.add(p.id);
+      const el = markerEl(p, p.id === selectedId, order?.[p.id], isNew, isNew ? 120 * fresh++ : 0);
       el.addEventListener('click', (ev) => {
         ev.stopPropagation();
         onSelect?.(p);

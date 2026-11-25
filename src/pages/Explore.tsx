@@ -97,8 +97,8 @@ export default function Explore() {
             </div>
           )}
           <ul className="space-y-2">
-            {list.map(({ p, min, dist }) => (
-              <li key={p.id}>
+            {list.map(({ p, min, dist }, i) => (
+              <motion.li key={p.id} layout initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 10) * 0.04 }}>
                 <button
                   onClick={() => onSelect(p)}
                   className={`w-full rounded-xl p-3 text-left transition ${selected?.id === p.id ? 'bg-brand-50 ring-1 ring-brand-200' : 'hover:bg-slate-50'}`}
@@ -120,7 +120,7 @@ export default function Explore() {
                     <WaitBadge minutes={min} />
                   </div>
                 </button>
-              </li>
+              </motion.li>
             ))}
           </ul>
         </div>

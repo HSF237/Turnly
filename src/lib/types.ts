@@ -36,6 +36,32 @@ export interface Place {
   checkInRadius: number;
   createdAt: number;
   updatedAt: number;
+  /** Hidden places (e.g. teachers in a school event) don't appear on the public map. */
+  hidden?: boolean;
+  /** Set when this queue belongs to a school event (one queue per teacher). */
+  eventId?: string | null;
+  teacher?: { name: string; subject: string; room: string } | null;
+}
+
+export interface SchoolEvent {
+  id: string;
+  name: string;
+  schoolName: string;
+  date: string;
+  ownerUid: string;
+  slotMinutes: number;
+  lat: number;
+  lng: number;
+  teacherIds: string[];
+  isOpen: boolean;
+  createdAt: number;
+}
+
+export interface SwapRequest {
+  fromTicketId: string;
+  fromNumber: number;
+  fromName: string;
+  at: number;
 }
 
 export type TicketStatus = 'waiting' | 'called' | 'done' | 'skipped' | 'left';
@@ -57,6 +83,11 @@ export interface Ticket {
   walkIn: boolean;
   /** Set when the customer confirms they've arrived (fair check-in). */
   checkedInAt?: number | null;
+  /** Someone behind has asked to swap places with this ticket. */
+  swapRequest?: SwapRequest | null;
+  swappedAt?: number | null;
+  /** Busy elsewhere (e.g. with another teacher): staff skip this ticket until then. */
+  deferUntil?: number | null;
 }
 
 export const CATEGORY_META: Record<Category, { label: string; emoji: string }> = {

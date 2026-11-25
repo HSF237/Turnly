@@ -24,6 +24,9 @@ export interface NewPlaceInput {
   avgMinutes: number;
   languages: string[];
   checkInRadius: number;
+  hidden?: boolean;
+  eventId?: string | null;
+  teacher?: { name: string; subject: string; room: string } | null;
 }
 
 export async function createPlace(ownerUid: string, input: NewPlaceInput) {
@@ -46,6 +49,9 @@ export async function createPlace(ownerUid: string, input: NewPlaceInput) {
     checkInRadius: input.checkInRadius,
     createdAt: now,
     updatedAt: now,
+    hidden: !!input.hidden,
+    eventId: input.eventId ?? null,
+    teacher: input.teacher ?? null,
   };
   const ref = await addDoc(collection(db, 'places'), data);
   return ref.id;
@@ -118,8 +124,9 @@ export async function joinQueue(
  * The finished customer's serving time feeds the moving average.
  */
 export async function callNext(place: Place, tickets: Ticket[], counter: number) {
+  const now0 = Date.now();
   const next = tickets
-    .filter((t) => t.status === 'waiting')
+    .filter((t) => t.status === 'waiting' && !(t.deferUntil && t.deferUntil > now0))
     .sort((a, b) => a.number - b.number)[0];
   const current = tickets.filter((t) => t.status === 'called' && t.counter === counter);
 
@@ -153,6 +160,63 @@ export async function callNext(place: Place, tickets: Ticket[], counter: number)
     tx.update(placeRef(place.id), patch);
     return next && nextSnapOk ? next : null;
   });
+}
+
+/** Customer: ask the person ahead to swap places. */
+export function requestSwap(placeId: string, mine: Ticket, target: Ticket) {
+  return updateDoc(ticketRef(placeId, target.id), {
+    swapRequest: { fromTicketId: mine.id, fromNumber: mine.number, fromName: mine.name, at: Date.now() },
+  });
+}
+
+export function clearSwap(placeId: string, targetId: string) {
+  return updateDoc(ticketRef(placeId, targetId), { swapRequest: null });
+}
+
+/** Customer: accept a swap. Both tokens trade numbers in one transaction. */
+export async function acceptSwap(placeId: string, mineId: string) {
+  return runTransaction(db, async (tx) => {
+    const mSnap = await tx.get(ticketRef(placeId, mineId));
+    const mine = mSnap.data() as Ticket;
+    const req = mine.swapRequest;
+    if (!req) throw new Error('This swap request has expired.');
+    const oSnap = await tx.get(ticketRef(placeId, req.fromTicketId));
+    const other = oSnap.data() as Ticket;
+    if (mine.status !== 'waiting' || other.status !== 'waiting') {
+      tx.update(ticketRef(placeId, mineId), { swapRequest: null });
+      return false;
+    }
+    const now = Date.now();
+    tx.update(ticketRef(placeId, mineId), { number: other.number, swapRequest: null, swappedAt: now });
+    tx.update(ticketRef(placeId, req.fromTicketId), { number: mine.number, swappedAt: now });
+    return true;
+  });
+}
+
+/** Customer: "I'm busy with someone else" — go back to waiting, skipped for a few minutes. */
+export async function deferTicket(placeId: string, ticketId: string, minutes = 5) {
+  await runTransaction(db, async (tx) => {
+    const pSnap = await tx.get(placeRef(placeId));
+    const p = pSnap.data() as Omit<Place, 'id'>;
+    const tSnap = await tx.get(ticketRef(placeId, ticketId));
+    const t = tSnap.data() as Ticket;
+    if (t.status !== 'called') return;
+    tx.update(ticketRef(placeId, ticketId), {
+      status: 'waiting',
+      calledAt: null,
+      counter: null,
+      deferUntil: Date.now() + minutes * 60000,
+    });
+    tx.update(placeRef(placeId), { waiting: (p.waiting || 0) + 1, updatedAt: Date.now() });
+  });
+}
+
+const KINDNESS = 'turnly:kindness';
+export function kindnessPoints() {
+  return Number(localStorage.getItem(KINDNESS) || 0);
+}
+export function addKindness() {
+  localStorage.setItem(KINDNESS, String(kindnessPoints() + 1));
 }
 
 /** Staff: announce the same token again. */

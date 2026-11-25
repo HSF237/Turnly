@@ -5,7 +5,10 @@ import { Bell, CheckCircle2, Footprints, LogOut, MapPin, Share2, Users } from 'l
 import { Empty, ErrorNote, Spinner } from '../components/States';
 import { useAuth, useGeolocation, usePlace, useTick, useTickets } from '../lib/hooks';
 import { formatMinutes, ticketPosition } from '../lib/predict';
-import { checkIn, forgetTicket, leaveQueue, markDone } from '../lib/queue';
+import { checkIn, deferTicket, forgetTicket, leaveQueue, markDone } from '../lib/queue';
+import SwapPanel from '../components/SwapPanel';
+import Confetti from '../components/Confetti';
+import SplitFlap from '../components/SplitFlap';
 import { buzz, chime, notify } from '../lib/speech';
 import { distanceM } from '../lib/time';
 import { travelMinutes } from '../lib/planner';
@@ -124,9 +127,14 @@ export default function TicketPage() {
               <p className="mt-4 text-2xl font-bold">Go to counter {ticket.counter}</p>
               <p className="mt-1 text-brand-100">{place.name}</p>
               {mine && (
-                <button className="btn mt-10 bg-white px-6 py-3 text-base text-brand-800 hover:bg-brand-50" onClick={() => act(() => markDone(place.id, ticket.id))}>
-                  <CheckCircle2 size={18} /> I'm done
-                </button>
+                <div className="mt-10 flex flex-col items-center gap-3">
+                  <button className="btn bg-white px-6 py-3 text-base text-brand-800 hover:bg-brand-50" onClick={() => act(() => markDone(place.id, ticket.id))}>
+                    <CheckCircle2 size={18} /> I'm done
+                  </button>
+                  <button className="text-sm font-semibold text-brand-100 underline-offset-4 hover:underline" onClick={() => act(() => deferTicket(place.id, ticket.id, 5))}>
+                    Can't come yet? Hold my spot 5 min
+                  </button>
+                </div>
               )}
             </motion.div>
           </motion.div>
@@ -148,6 +156,7 @@ export default function TicketPage() {
 
         {ended ? (
           <div className="py-10 text-center">
+            {ticket.status === 'done' && <Confetti />}
             <p className="text-7xl font-extrabold">{ticket.number}</p>
             <p className="mt-3 text-xl font-bold">
               {ticket.status === 'done' ? 'All done. Thanks for not waiting! 🎉' : ticket.status === 'left' ? 'You left the queue' : 'This token was skipped'}
@@ -162,9 +171,7 @@ export default function TicketPage() {
               <Ring progress={progress}>
                 <div>
                   <p className="text-sm text-brand-100">Token</p>
-                  <motion.p key={ticket.number} initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-7xl font-extrabold leading-none">
-                    {ticket.number}
-                  </motion.p>
+                  <SplitFlap value={ticket.number} tone="brand" className="mt-1 text-6xl" />
                   <p className="mt-2 text-sm font-semibold text-brand-100">
                     {pos?.ahead === 0 ? "You're next!" : `${pos?.ahead} ahead of you`}
                   </p>
@@ -224,6 +231,8 @@ export default function TicketPage() {
               </div>
             </div>
           </div>
+
+          <SwapPanel place={place} ticket={ticket} tickets={tickets} mine={mine} />
 
           {canCheckIn && mine && (
             <button

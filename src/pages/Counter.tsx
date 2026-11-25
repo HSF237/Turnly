@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Empty, ErrorNote, Spinner } from '../components/States';
 import WaitBadge from '../components/WaitBadge';
+import SplitFlap from '../components/SplitFlap';
 import { useAuth, usePlace, useTick, useTickets } from '../lib/hooks';
 import { formatMinutes, placeWaitMinutes } from '../lib/predict';
 import {
@@ -257,7 +258,7 @@ export default function Counter() {
                   >
                     {current ? (
                       <div className="mt-1">
-                        <p className="text-7xl font-extrabold leading-none tracking-tight text-slate-900">{current.number}</p>
+                        <SplitFlap value={current.number} tone="light" className="mt-1 text-6xl text-slate-900" />
                         <p className="mt-2 font-semibold text-slate-700">
                           {current.name}
                           {current.partySize > 1 && <span className="ml-2 chip bg-sun-50 text-sun-600 ring-sun-100"><Users size={12} /> {current.partySize}</span>}
@@ -322,6 +323,8 @@ export default function Counter() {
                           <p className="text-xs text-slate-400">
                             Joined {clock(t.createdAt)} · {t.walkIn ? 'walk-in' : 'from phone'}
                             {t.checkedInAt ? ' · ✓ arrived' : ''}
+                            {t.swappedAt ? ' · ↔ swapped' : ''}
+                            {t.deferUntil && t.deferUntil > Date.now() ? ' · ⏸ busy elsewhere' : ''}
                           </p>
                         </div>
                       </div>

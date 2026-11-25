@@ -60,6 +60,14 @@
   cursor: pointer;
   transform-origin: bottom center;
 }
+.turnly-marker.drop > div {
+  animation: turnlyDrop 0.7s cubic-bezier(0.2, 0.8, 0.2, 1.25) both;
+}
+@keyframes turnlyDrop {
+  0% { transform: translateY(-46px) scale(0.6); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
 
 @media print {
   .no-print {

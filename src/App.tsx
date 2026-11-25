@@ -17,11 +17,15 @@ import TicketPage from './pages/TicketPage';
 import TV from './pages/TV';
 import Plan from './pages/Plan';
 import MyTokens from './pages/MyTokens';
+import SchoolNew from './pages/SchoolNew';
+import SchoolAdmin from './pages/SchoolAdmin';
+import SchoolJoin from './pages/SchoolJoin';
+import SchoolBoard from './pages/SchoolBoard';
 import NotFound from './pages/NotFound';
 
 export default function App() {
   const location = useLocation();
-  const bare = location.pathname.startsWith('/tv/') || location.pathname.endsWith('/poster');
+  const bare = location.pathname.startsWith('/tv/') || location.pathname.endsWith('/poster') || location.pathname.endsWith('/board');
   const fullHeight = location.pathname === '/explore';
 
   useEffect(() => {
@@ -36,9 +40,10 @@ export default function App() {
       <AnimatePresence mode="wait">
         <motion.main
           key={location.pathname}
-          initial={{ opacity: 0, y: 14, filter: 'blur(4px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+          // No filter/transform left behind after the animation: they would trap position:fixed overlays.
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0, transitionEnd: { transform: 'none' } }}
+          exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
           className={bare || fullHeight ? '' : 'pb-24 md:pb-0'}
         >
@@ -50,6 +55,10 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/business" element={<BusinessHome />} />
             <Route path="/business/new" element={<NewPlace />} />
+            <Route path="/business/school/new" element={<SchoolNew />} />
+            <Route path="/business/school/:eventId" element={<SchoolAdmin />} />
+            <Route path="/s/:eventId" element={<SchoolJoin />} />
+            <Route path="/s/:eventId/board" element={<SchoolBoard />} />
             <Route path="/business/:placeId" element={<Counter />} />
             <Route path="/business/:placeId/poster" element={<QrPoster />} />
             <Route path="/q/:placeId" element={<Join />} />

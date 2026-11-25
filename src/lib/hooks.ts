@@ -3,7 +3,7 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import { collection, doc, limit, onSnapshot, query, where } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { todayKey } from './time';
-import type { Place, Ticket } from './types';
+import type { Place, SchoolEvent, Ticket } from './types';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(auth.currentUser);
@@ -72,7 +72,7 @@ export function usePlaces() {
     return onSnapshot(
       q,
       (snap) => {
-        setPlaces(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Place));
+        setPlaces(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Place).filter((p) => !p.hidden));
         setLoading(false);
       },
       (e) => {
@@ -93,7 +93,7 @@ export function useMyPlaces(uid: string | undefined) {
     return onSnapshot(
       q,
       (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Place);
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Place).filter((p) => !p.hidden);
         list.sort((a, b) => b.createdAt - a.createdAt);
         setPlaces(list);
         setLoading(false);
@@ -138,4 +138,74 @@ export function useGeolocation() {
       );
     });
   return { pos, error, request };
+}
+
+export function useSchoolEvent(eventId: string | undefined) {
+  const [event, setEvent] = useState<SchoolEvent | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!eventId) return;
+    return onSnapshot(
+      doc(db, 'schoolEvents', eventId),
+      (snap) => {
+        setEvent(snap.exists() ? ({ id: snap.id, ...snap.data() } as SchoolEvent) : null);
+        setLoading(false);
+      },
+      () => setLoading(false),
+    );
+  }, [eventId]);
+  return { event, loading };
+}
+
+export function useEventTeachers(eventId: string | undefined) {
+  const [teachers, setTeachers] = useState<Place[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!eventId) return;
+    const q = query(collection(db, 'places'), where('eventId', '==', eventId));
+    return onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Place);
+        list.sort((a, b) => a.createdAt - b.createdAt || a.name.localeCompare(b.name));
+        setTeachers(list);
+        setLoading(false);
+      },
+      () => setLoading(false),
+    );
+  }, [eventId]);
+  return { teachers, loading };
+}
+
+export function useMySchoolEvents(uid: string | undefined) {
+  const [events, setEvents] = useState<SchoolEvent[]>([]);
+  useEffect(() => {
+    if (!uid) return;
+    const q = query(collection(db, 'schoolEvents'), where('ownerUid', '==', uid));
+    return onSnapshot(q, (snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SchoolEvent);
+      list.sort((a, b) => b.createdAt - a.createdAt);
+      setEvents(list);
+    });
+  }, [uid]);
+  return events;
+}
+
+/** Today's tickets for many places at once: placeId → tickets. */
+export function useMultiTickets(placeIds: string[]) {
+  const [map, setMap] = useState<Record<string, Ticket[]>>({});
+  const day = todayKey();
+  const key = placeIds.join(',');
+  useEffect(() => {
+    if (!placeIds.length) return;
+    const unsubs = placeIds.map((pid) =>
+      onSnapshot(query(collection(db, 'places', pid, 'tickets'), where('dayKey', '==', day)), (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Ticket).sort((a, b) => a.number - b.number);
+        setMap((m) => ({ ...m, [pid]: list }));
+      }),
+    );
+    return () => unsubs.forEach((u) => u());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, day]);
+  return map;
 }

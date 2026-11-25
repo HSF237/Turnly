@@ -16,9 +16,17 @@ Entry for the 6th International Digital Fest 2027 (Web & Mobile Applications), A
 
 **Wait prediction:** `wait ≈ (people ahead × average serving time) ÷ open counters`, where the average serving time is an exponential moving average learned from every finished customer (`src/lib/predict.ts`).
 
-## Coming next (per the build plan)
+## Also built
 
-School mode (PTM route planner), Plan my errands, Swap my spot, Community mode, City pulse on live data, Best time to come, Speed badges, Wait somewhere better.
+- **Startup screen** (tokens fly into the logo), interactive hero queue, scroll story, animated bento feature tiles, split-flap token digits, ticket-printing animation, magnetic buttons, wordmark footer, mobile tab bar
+- **Plan my errands** — tests every visiting order (up to 7! = 5,040) with live waits; Turnly joins your next queue as you leave each stop
+- **Swap my spot** — ask someone ahead to trade numbers; they earn kindness points
+- **Hold my spot** — called while busy elsewhere? You're skipped for 5 minutes, not lost
+- **School mode** — parent-teacher meetings: parents hold a place in every teacher's line at once and are sent to whoever is free next; hall board for the big screen
+
+## Coming next
+
+Community mode (crowd-reported waits), City pulse on live data, Best time to come from history, Speed badges, Wait somewhere better.
 
 ## Run it
 

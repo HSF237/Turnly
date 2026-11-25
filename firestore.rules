@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Turnly Firestore rules.
-// Places and today's tickets are public to read (the TV board and the map need them).
+// Places, school events and today's tickets are public to read (TV boards and the map need them).
 // Only the owner can run a place; anyone signed in (guests included) can join a queue.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -10,6 +10,15 @@ service cloud.firestore {
     }
     function isOwner(placeId) {
       return signedIn() && get(/databases/$(database)/documents/places/$(placeId)).data.ownerUid == request.auth.uid;
+    }
+    function onlyKeys(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    match /schoolEvents/{eventId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
     }
 
     match /places/{placeId} {
@@ -24,8 +33,7 @@ service cloud.firestore {
         resource.data.ownerUid == request.auth.uid
         || (
           request.resource.data.ownerUid == resource.data.ownerUid
-          && request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['lastTicket', 'waiting', 'dayKey', 'servedToday', 'updatedAt'])
+          && onlyKeys(['lastTicket', 'waiting', 'dayKey', 'servedToday', 'updatedAt'])
         )
       );
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
@@ -35,8 +43,17 @@ service cloud.firestore {
         allow create: if signedIn()
           && (request.resource.data.uid == request.auth.uid || isOwner(placeId))
           && request.resource.data.status == 'waiting';
-        // Customers can update their own ticket (leave, done, check in); the owner can update any.
-        allow update: if signedIn() && (resource.data.uid == request.auth.uid || isOwner(placeId));
+        allow update: if signedIn() && (
+          // Customers update their own ticket (leave, done, check in, busy elsewhere); the owner updates any.
+          resource.data.uid == request.auth.uid
+          || isOwner(placeId)
+          // Swap my spot: two waiting tickets may trade numbers / carry a swap request.
+          || (
+            resource.data.status == 'waiting'
+            && request.resource.data.status == 'waiting'
+            && onlyKeys(['number', 'swapRequest', 'swappedAt'])
+          )
+        );
         allow delete: if isOwner(placeId);
       }
     }

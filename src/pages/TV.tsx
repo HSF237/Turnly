@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { Maximize, Volume2 } from 'lucide-react';
 import Logo from '../components/Logo';
+import SplitFlap from '../components/SplitFlap';
 import { Empty, Spinner } from '../components/States';
 import { usePlace, useTick, useTickets } from '../lib/hooks';
 import { formatMinutes, placeWaitMinutes } from '../lib/predict';
@@ -96,7 +97,7 @@ export default function TV() {
                 className={`rounded-3xl p-8 ring-1 ${flash?.id === t.id ? 'bg-brand-600 ring-brand-300' : 'bg-white/5 ring-white/10'}`}
               >
                 <p className="text-xl font-semibold text-slate-300">Counter {t.counter}</p>
-                <p className="mt-2 text-[7rem] font-extrabold leading-none tabular-nums">{t.number}</p>
+                <SplitFlap value={t.number} tone="dark" className="mt-3 text-[5.5rem]" />
                 <p className="mt-2 truncate text-2xl font-semibold text-slate-200">{t.name}</p>
               </motion.div>
             ))}

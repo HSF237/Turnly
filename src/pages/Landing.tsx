@@ -4,24 +4,19 @@ import {
   ArrowRight,
   Bell,
   Building2,
-  CalendarClock,
-  Footprints,
   GraduationCap,
-  Languages,
   MapPinned,
-  Monitor,
   QrCode,
-  Repeat2,
-  Route,
   Ticket,
   Timer,
-  Users,
 } from 'lucide-react';
 import Aurora from '../components/Aurora';
+import BentoFeatures from '../components/BentoFeatures';
 import CityPulse from '../components/CityPulse';
+import Footer from '../components/Footer';
+import Magnetic from '../components/Magnetic';
 import CountUp from '../components/CountUp';
 import LiveQueueDemo from '../components/LiveQueueDemo';
-import Logo from '../components/Logo';
 import ScrollStory from '../components/ScrollStory';
 import SpotCard from '../components/SpotCard';
 import { usePlaces } from '../lib/hooks';
@@ -39,16 +34,6 @@ const fade = {
 
 const HEADLINE = ['No', 'one', 'should', 'ever'];
 
-const FEATURES = [
-  { icon: MapPinned, title: 'Live wait map', text: 'See the real wait at every bank, barber, office and shop near you, right now.' },
-  { icon: Footprints, title: 'Leave home now', text: 'Turnly matches your travel time to the queue speed and tells you exactly when to go.' },
-  { icon: Route, title: 'Plan my errands', text: 'Bank, barber and passport office? Get the order with the least total waiting.' },
-  { icon: Repeat2, title: 'Swap my spot', text: 'In a hurry? Ask to swap. Help someone and earn kindness points for later.' },
-  { icon: Monitor, title: 'TV mode', text: 'Any screen becomes a live token board that announces calls out loud.' },
-  { icon: Languages, title: 'Speaks your language', text: 'Calls in English, Malay, Malayalam, Tamil, Hindi and Arabic.' },
-  { icon: Users, title: 'Family token', text: 'The whole family joins as one token, not five.' },
-  { icon: CalendarClock, title: 'Best time to come', text: "Every place shows when it's usually quiet, built from its own history." },
-];
 
 const PLACES = ['🏦 Banks', '💈 Barbers', '💊 Pharmacies', '🏛️ Passport offices', '🎓 School PTMs', '🩺 Clinics', '🛠️ Service centres', '☕ Cafés', '🎟️ Fest counters', '🛍️ Shops'];
 
@@ -111,13 +96,17 @@ export default function Landing() {
               turn. The line comes to your phone.
             </motion.p>
             <motion.div variants={fade} initial="hidden" animate="show" custom={8} className="mt-8 flex flex-wrap gap-3">
-              <Link to="/explore" className="btn-primary group px-5 py-3.5 text-base shadow-[0_12px_30px_-10px_rgba(10,133,118,.7)]">
-                <MapPinned size={18} /> Find a queue near me
-                <ArrowRight size={16} className="transition group-hover:translate-x-1" />
-              </Link>
-              <Link to="/business" className="btn-ghost px-5 py-3.5 text-base">
-                Set up my business, free
-              </Link>
+              <Magnetic>
+                <Link to="/explore" className="btn-primary group px-5 py-3.5 text-base shadow-[0_12px_30px_-10px_rgba(10,133,118,.7)]">
+                  <MapPinned size={18} /> Find a queue near me
+                  <ArrowRight size={16} className="transition group-hover:translate-x-1" />
+                </Link>
+              </Magnetic>
+              <Magnetic>
+                <Link to="/business" className="btn-ghost px-5 py-3.5 text-base">
+                  Set up my business, free
+                </Link>
+              </Magnetic>
             </motion.div>
             <motion.div variants={fade} initial="hidden" animate="show" custom={9} className="mt-10 flex flex-wrap gap-8">
               <div>
@@ -212,21 +201,14 @@ export default function Landing() {
 
       {/* Features */}
       <section className="container-x pb-20">
-        <motion.h2 variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-3xl font-extrabold tracking-tight sm:text-5xl">
-          Built for the way people really wait.
+        <motion.h2 variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }} className="max-w-3xl text-3xl font-extrabold tracking-tight sm:text-5xl">
+          Built for the way people <span className="text-brand-600">really</span> wait.
         </motion.h2>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f, i) => (
-            <motion.div key={f.title} variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }} custom={i % 4}>
-              <SpotCard className="h-full p-5">
-                <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600 transition duration-300 group-hover:scale-110 group-hover:bg-brand-600 group-hover:text-white">
-                  <f.icon size={22} />
-                </span>
-                <h3 className="mt-4 font-bold">{f.title}</h3>
-                <p className="mt-1 text-sm text-slate-600">{f.text}</p>
-              </SpotCard>
-            </motion.div>
-          ))}
+        <motion.p variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }} custom={1} className="mt-3 max-w-2xl text-lg text-slate-600">
+          Eight small ideas that add up to never standing in a line again.
+        </motion.p>
+        <div className="mt-10">
+          <BentoFeatures />
         </div>
       </section>
 
@@ -275,20 +257,17 @@ export default function Landing() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3 md:justify-end">
-              <Link to="/business/new" className="btn group bg-white px-6 py-4 text-base text-slate-900 hover:bg-slate-100">
-                Create my queue <ArrowRight size={18} className="transition group-hover:translate-x-1" />
-              </Link>
+              <Magnetic strength={0.35}>
+                <Link to="/business/new" className="btn group bg-white px-6 py-4 text-base text-slate-900 hover:bg-slate-100">
+                  Create my queue <ArrowRight size={18} className="transition group-hover:translate-x-1" />
+                </Link>
+              </Magnetic>
             </div>
           </div>
         </motion.div>
       </section>
 
-      <footer className="border-t border-slate-200 bg-white pb-24 md:pb-0">
-        <div className="container-x flex flex-col items-center justify-between gap-3 py-8 text-sm text-slate-500 sm:flex-row">
-          <Logo size={26} />
-          <p>Built by Muhammad Hasan · International Digital Fest 2027</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
