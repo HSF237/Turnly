@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// Turnly Firestore rules.
+// Places and today's tickets are public to read (the TV board and the map need them).
+// Only the owner can run a place; anyone signed in (guests included) can join a queue.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isOwner(placeId) {
+      return signedIn() && get(/databases/$(database)/documents/places/$(placeId)).data.ownerUid == request.auth.uid;
+    }
+
+    match /places/{placeId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80;
+      // The owner can change anything. Customers joining/leaving may only touch the queue counters.
+      allow update: if signedIn() && (
+        resource.data.ownerUid == request.auth.uid
+        || (
+          request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['lastTicket', 'waiting', 'dayKey', 'servedToday', 'updatedAt'])
+        )
+      );
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+
+      match /tickets/{ticketId} {
+        allow read: if true;
+        allow create: if signedIn()
+          && (request.resource.data.uid == request.auth.uid || isOwner(placeId))
+          && request.resource.data.status == 'waiting';
+        // Customers can update their own ticket (leave, done, check in); the owner can update any.
+        allow update: if signedIn() && (resource.data.uid == request.auth.uid || isOwner(placeId));
+        allow delete: if isOwner(placeId);
+      }
+    }
+  }
+}

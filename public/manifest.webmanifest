@@ -1,0 +1,10 @@
+{
+  "name": "Turnly",
+  "short_name": "Turnly",
+  "description": "Google Maps for waiting. Join any queue from anywhere.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0a8576",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
