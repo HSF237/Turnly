@@ -5,6 +5,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Crosshair, MapPinned, Search, Sp
 import CategoryArt from '../components/CategoryArt';
 import CityPulse from '../components/CityPulse';
 import Footer from '../components/Footer';
+import InstallCard from '../components/InstallCard';
 import PlaceCard from '../components/PlaceCard';
 import SplitFlap from '../components/SplitFlap';
 import TokenCard from '../components/TokenCard';
@@ -211,6 +212,8 @@ export default function Home() {
             ))}
           </div>
         </motion.div>
+
+        <InstallCard />
 
         {/* ── My tokens ── */}
         {mine.length > 0 && (

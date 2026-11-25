@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Maximize, Volume2 } from 'lucide-react';
 import Logo from '../components/Logo';
 import SplitFlap from '../components/SplitFlap';
+import CategoryArt from '../components/CategoryArt';
 import { Empty, Spinner } from '../components/States';
 import { usePlace, useTick, useTickets } from '../lib/hooks';
 import { formatMinutes, placeWaitMinutes } from '../lib/predict';
@@ -68,9 +69,14 @@ export default function TV() {
 
       {/* Header */}
       <header className="relative flex items-center justify-between px-10 py-6">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-brand-300">Now serving</p>
-          <h1 className="text-4xl font-extrabold">{place.name}</h1>
+        <div className="flex items-center gap-5">
+          <div className="h-16 w-24 overflow-hidden rounded-2xl ring-1 ring-white/15">
+            <CategoryArt category={place.category} className="h-full w-full" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-brand-300">Now serving</p>
+            <h1 className="text-4xl font-extrabold">{place.name}</h1>
+          </div>
         </div>
         <div className="text-right">
           <p className="text-5xl font-extrabold tabular-nums">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
@@ -78,7 +84,7 @@ export default function TV() {
         </div>
       </header>
 
-      <div className="relative grid gap-8 px-10 pb-10 lg:grid-cols-[1.6fr_1fr]">
+      <div className="relative grid gap-8 px-10 pb-24 lg:grid-cols-[1.6fr_1fr]">
         {/* Serving grid */}
         <section className="grid content-start gap-5 sm:grid-cols-2">
           {serving.length === 0 && (
@@ -138,6 +144,24 @@ export default function TV() {
             </div>
           </div>
         </aside>
+      </div>
+
+      {/* Ticker */}
+      <div className="absolute inset-x-0 bottom-0 overflow-hidden border-t border-white/10 bg-white/[0.04] py-3 backdrop-blur">
+        <div className="flex w-max animate-marquee gap-12 whitespace-nowrap text-lg font-bold text-slate-300">
+          {Array.from({ length: 2 }, (_, k) => (
+            <span key={k} className="flex gap-12">
+              <span>
+                Up next: <span className="text-white">{upNext.slice(0, 5).map((t) => t.number).join('  ·  ') || '—'}</span>
+              </span>
+              <span className="text-brand-300">Skip the line: scan the QR code and wait anywhere</span>
+              <span>
+                Estimated wait <span className="text-white">{formatMinutes(placeWaitMinutes(place))}</span>
+              </span>
+              <span className="text-sun-300">Powered by Turnly</span>
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* Big flash on a new call */}

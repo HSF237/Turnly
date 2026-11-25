@@ -89,7 +89,7 @@ export default function MapView({ places = [], center, zoom = 13, selectedId, on
       zoom,
       attributionControl: { compact: true },
     });
-    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     m.on('click', (e) => onPickRef.current?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
     map.current = m;
     return () => m.remove();

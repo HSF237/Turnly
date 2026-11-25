@@ -20,6 +20,7 @@ import {
 import { Empty, ErrorNote, Spinner } from '../components/States';
 import WaitBadge from '../components/WaitBadge';
 import SplitFlap from '../components/SplitFlap';
+import CategoryArt from '../components/CategoryArt';
 import { useAuth, usePlace, useTick, useTickets } from '../lib/hooks';
 import { formatMinutes, placeWaitMinutes } from '../lib/predict';
 import {
@@ -174,12 +175,19 @@ export default function Counter() {
     <div className="container-x py-8">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link to="/business" className="text-sm font-semibold text-slate-500 hover:text-slate-800">← My queues</Link>
+        <div className="flex items-center gap-4">
+          <div className="hidden h-20 w-28 shrink-0 overflow-hidden rounded-2xl shadow-soft ring-1 ring-black/5 sm:block">
+            <CategoryArt category={place.category} className="h-full w-full" />
+          </div>
+          <div>
+          <Link to={place.eventId ? `/business/school/${place.eventId}` : '/business'} className="text-sm font-semibold text-slate-500 hover:text-slate-800">
+            ← {place.eventId ? 'School event' : 'My queues'}
+          </Link>
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight">{place.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <WaitBadge minutes={placeWaitMinutes(place)} />
             <span className="text-sm text-slate-500">{place.address}</span>
+          </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

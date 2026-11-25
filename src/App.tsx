@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Navbar from './components/Navbar';
 import TabBar from './components/TabBar';
 import Splash from './components/Splash';
+import Onboarding from './components/Onboarding';
 import ScrollProgress from './components/ScrollProgress';
 import Landing from './pages/Landing';
 import Home from './pages/Home';
@@ -28,6 +29,8 @@ export default function App() {
   const location = useLocation();
   const bare = location.pathname.startsWith('/tv/') || location.pathname.endsWith('/poster') || location.pathname.endsWith('/board');
   const fullHeight = location.pathname === '/explore';
+  // Focused flows (joining, your ticket, a school meeting) hide the tab bar like a native app.
+  const focused = /^\/(q|t|s)\//.test(location.pathname);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -36,6 +39,7 @@ export default function App() {
   return (
     <div className="min-h-dvh">
       <Splash />
+      <Onboarding />
       {!bare && <ScrollProgress />}
       {!bare && <Navbar />}
       <AnimatePresence mode="wait">
@@ -46,7 +50,7 @@ export default function App() {
           animate={{ opacity: 1, y: 0, transitionEnd: { transform: 'none' } }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
-          className={bare || fullHeight ? '' : 'pb-24 md:pb-0'}
+          className={bare || fullHeight || focused ? '' : 'pb-24 md:pb-0'}
         >
           <Routes location={location}>
             <Route path="/" element={<Home />} />
@@ -70,7 +74,7 @@ export default function App() {
           </Routes>
         </motion.main>
       </AnimatePresence>
-      {!bare && <TabBar />}
+      {!bare && !focused && <TabBar />}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { checkIn, deferTicket, forgetTicket, leaveQueue, markDone } from '../lib
 import SwapPanel from '../components/SwapPanel';
 import Confetti from '../components/Confetti';
 import SplitFlap from '../components/SplitFlap';
+import CategoryArt from '../components/CategoryArt';
 import { buzz, chime, notify } from '../lib/speech';
 import { distanceM } from '../lib/time';
 import { travelMinutes } from '../lib/planner';
@@ -93,6 +94,8 @@ export default function TicketPage() {
   const leaveIn = travel !== null && pos ? pos.etaMin - travel : null;
   const canCheckIn = place.checkInRadius > 0 && !ticket.checkedInAt && ticket.status === 'waiting';
   const progress = pos && initialAhead.current ? 1 - pos.ahead / initialAhead.current : 0;
+  const aheadList = tickets.filter((t) => t.status === 'waiting' && t.number < ticket.number).sort((a, b) => a.number - b.number);
+  const stage = ticket.status === 'done' ? 3 : ticket.status === 'called' ? 2 : pos && pos.ahead <= 2 ? 1 : 0;
 
   const act = async (fn: () => Promise<unknown>) => {
     setError(null);
@@ -141,19 +144,24 @@ export default function TicketPage() {
         )}
       </AnimatePresence>
 
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-3xl bg-gradient-to-b from-brand-600 to-brand-800 p-6 text-white shadow-lift">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-brand-100">Your token</p>
-            <p className="mt-0.5 font-semibold">{place.name}</p>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[2rem] bg-brand-800 text-white shadow-lift">
+        {/* Illustrated header */}
+        <div className="relative h-32 overflow-hidden">
+          <CategoryArt category={place.category} className="h-full w-full" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-800/40 to-brand-800" />
+          <div className="absolute inset-x-5 bottom-3 flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-brand-100">Your token at</p>
+              <p className="truncate text-lg font-extrabold">{place.name}</p>
+            </div>
+            {ticket.partySize > 1 && (
+              <span className="chip shrink-0 bg-white/15 text-white ring-white/20 backdrop-blur">
+                <Users size={12} /> {ticket.partySize}
+              </span>
+            )}
           </div>
-          {ticket.partySize > 1 && (
-            <span className="chip bg-white/15 text-white ring-white/20">
-              <Users size={12} /> {ticket.partySize}
-            </span>
-          )}
         </div>
-
+        <div className="bg-gradient-to-b from-brand-800 to-brand-900 px-6 pb-6">
         {ended ? (
           <div className="py-10 text-center">
             {ticket.status === 'done' && <Confetti />}
@@ -188,8 +196,62 @@ export default function TicketPage() {
                 <p className="text-2xl font-extrabold">{pos?.nowServing ? pos.nowServing.number : '—'}</p>
               </div>
             </div>
+
+            {/* The line ahead of you */}
+            <div className="mt-4 rounded-2xl bg-black/15 p-3">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-brand-100">The line</p>
+              <div className="mt-2 flex items-center gap-1.5 overflow-hidden">
+                {pos?.nowServing && (
+                  <span className="grid h-8 shrink-0 place-items-center rounded-full bg-sun-400 px-2 text-[11px] font-extrabold text-slate-900">#{pos.nowServing.number}</span>
+                )}
+                <AnimatePresence initial={false} mode="popLayout">
+                  {aheadList.slice(-6).map((t) => (
+                    <motion.span
+                      key={t.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.3, x: -20 }}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/15 text-[11px] font-bold"
+                      title={`#${t.number}`}
+                    >
+                      {t.name.slice(0, 1).toUpperCase()}
+                    </motion.span>
+                  ))}
+                </AnimatePresence>
+                {aheadList.length > 6 && <span className="text-xs font-bold text-brand-100">+{aheadList.length - 6}</span>}
+                <motion.span layout className="grid h-8 shrink-0 place-items-center rounded-full bg-white px-2.5 text-[11px] font-extrabold text-brand-800 ring-2 ring-sun-300">
+                  You
+                </motion.span>
+              </div>
+            </div>
+
+            {/* Journey */}
+            <div className="mt-5">
+              <div className="relative flex justify-between">
+                <div className="absolute left-3 right-3 top-3 h-0.5 bg-white/15" />
+                <motion.div
+                  className="absolute left-3 top-3 h-0.5 bg-sun-400"
+                  animate={{ width: `calc(${(stage / 3) * 100}% - ${(stage / 3) * 24}px)` }}
+                  transition={{ type: 'spring', stiffness: 80, damping: 18 }}
+                />
+                {['Joined', 'Almost', 'Your turn', 'Done'].map((label, k) => (
+                  <div key={label} className="relative flex w-16 flex-col items-center">
+                    <motion.span
+                      animate={{ scale: k === stage ? [1, 1.2, 1] : 1, backgroundColor: k <= stage ? '#fbab30' : 'rgba(255,255,255,0.15)' }}
+                      transition={{ scale: { repeat: k === stage ? Infinity : 0, duration: 1.6 } }}
+                      className="grid h-6 w-6 place-items-center rounded-full text-[10px] font-extrabold text-slate-900"
+                    >
+                      {k < stage ? '✓' : k + 1}
+                    </motion.span>
+                    <span className={`mt-1.5 text-[10px] font-bold ${k <= stage ? 'text-white' : 'text-brand-200/70'}`}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </>
         )}
+        </div>
       </motion.div>
 
       {error && <div className="mt-4"><ErrorNote message={error} /></div>}

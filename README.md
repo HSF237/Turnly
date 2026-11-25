@@ -24,6 +24,14 @@ Entry for the 6th International Digital Fest 2027 (Web & Mobile Applications), A
 - **Hold my spot** — called while busy elsewhere? You're skipped for 5 minutes, not lost
 - **School mode** — parent-teacher meetings: parents hold a place in every teacher's line at once and are sent to whoever is free next; hall board for the big screen
 
+## Round 5
+
+- **Installable app** (PWA): add Turnly to your iPhone/Android home screen; opens full screen with its own icon
+- **Welcome slides** on first visit
+- **Ticket screen**: illustrated header, the live line ahead of you, and a Joined → Almost → Your turn → Done journey
+- **Best time to come**: each place learns its busy hours from every join (by weekday and hour)
+- Mobile fixes: Explore bottom sheet, focused join/ticket flows without the tab bar, QR poster on phones
+
 ## Coming next
 
 Community mode (crowd-reported waits), City pulse on live data, Best time to come from history, Speed badges, Wait somewhere better.

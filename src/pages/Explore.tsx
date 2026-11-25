@@ -46,7 +46,7 @@ export default function Explore() {
   const live = selected ? places.find((p) => p.id === selected.id) ?? selected : null;
 
   return (
-    <div className="grid h-[calc(100dvh-4rem-1px)] grid-cols-1 grid-rows-[45dvh_minmax(0,1fr)] overflow-hidden md:grid-cols-[400px_1fr] md:grid-rows-1">
+    <div className="grid h-[calc(100dvh-4rem-1px)] grid-cols-1 grid-rows-[40dvh_minmax(0,1fr)] overflow-hidden md:grid-cols-[400px_1fr] md:grid-rows-1">
       {/* Sidebar */}
       <aside className="order-2 flex min-h-0 min-w-0 flex-col border-r border-slate-200 bg-white md:order-1">
         <div className="space-y-3 border-b border-slate-100 p-4">
@@ -131,7 +131,7 @@ export default function Explore() {
       </aside>
 
       {/* Map */}
-      <section className="relative order-1 h-[45dvh] md:order-2 md:h-auto">
+      <section className="relative order-1 min-h-0 md:order-2">
         <MapView places={places} selectedId={selected?.id} onSelect={onSelect} center={focus} me={geo.pos} />
         <button
           className="btn-ghost absolute left-3 top-3 shadow-soft"
@@ -145,16 +145,25 @@ export default function Explore() {
         <AnimatePresence>
           {live && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              key={live.id}
+              initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="card absolute inset-x-3 bottom-3 overflow-hidden p-4 pt-0 md:inset-x-auto md:right-4 md:w-96"
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.6 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 70) setSelected(null);
+              }}
+              className="card fixed inset-x-3 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 overflow-hidden p-4 pt-0 shadow-lift md:absolute md:inset-x-auto md:bottom-4 md:right-4 md:w-96"
             >
-              <div className="relative -mx-4 mb-3 h-28 overflow-hidden">
+              <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-300 md:hidden" />
+              <div className="relative -mx-4 mb-3 mt-2 h-20 overflow-hidden md:mt-0 md:h-28">
                 <CategoryArt category={live.category} className="h-full w-full" />
                 <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-transparent" />
               </div>
-              <button className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/90 text-slate-500 shadow-soft hover:bg-white" onClick={() => setSelected(null)}>
+              <button className="absolute right-3 top-4 z-10 grid h-8 w-8 place-items-center rounded-full bg-white/90 text-slate-500 shadow-soft hover:bg-white" onClick={() => setSelected(null)}>
                 <X size={16} />
               </button>
               <p className="text-xs font-semibold text-slate-500">
@@ -169,7 +178,7 @@ export default function Explore() {
                 </span>
               </div>
               <div className="mt-4 flex gap-2">
-                <Link to={`/q/${live.id}`} className="btn-primary flex-1" aria-disabled={!live.isOpen}>
+                <Link to={live.isOpen ? `/q/${live.id}` : '#'} className={`btn-primary flex-1 ${live.isOpen ? '' : 'pointer-events-none opacity-50'}`} aria-disabled={!live.isOpen}>
                   {live.isOpen ? 'Join the queue' : 'Closed now'}
                 </Link>
                 <a

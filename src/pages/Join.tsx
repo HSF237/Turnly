@@ -6,6 +6,7 @@ import Aurora from '../components/Aurora';
 import CategoryArt from '../components/CategoryArt';
 import WaitBadge from '../components/WaitBadge';
 import PrintTicket from '../components/PrintTicket';
+import BestTime from '../components/BestTime';
 import { Empty, ErrorNote, Spinner } from '../components/States';
 import { ensureGuest } from '../lib/firebase';
 import { usePlace } from '../lib/hooks';
@@ -151,6 +152,9 @@ export default function Join() {
           </div>
         )}
       </motion.div>
+      <div className="mt-4">
+        <BestTime place={place} />
+      </div>
     </div>
   );
 }

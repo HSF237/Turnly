@@ -41,6 +41,8 @@ export interface Place {
   /** Set when this queue belongs to a school event (one queue per teacher). */
   eventId?: string | null;
   teacher?: { name: string; subject: string; room: string } | null;
+  /** Learned arrivals: "weekday-hour" → number of people who joined (weekday 0 = Sunday). */
+  arrivals?: Record<string, number>;
 }
 
 export interface SchoolEvent {

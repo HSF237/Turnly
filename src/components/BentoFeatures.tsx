@@ -236,7 +236,7 @@ function FamilyMini() {
         {[0, 1, 2, 3].map((k) => (
           <motion.span
             key={k}
-            className="absolute top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-slate-100 text-slate-500 ring-2 ring-white"
+            className="absolute top-[calc(50%-1.375rem)] grid h-11 w-11 place-items-center rounded-full bg-slate-100 text-slate-500 ring-2 ring-white"
             animate={{ left: merged ? '38%' : `${k * 26}%`, opacity: merged ? 0 : 1, scale: merged ? 0.5 : 1 }}
             transition={{ type: 'spring', stiffness: 200, damping: 18 }}
           >
@@ -244,7 +244,7 @@ function FamilyMini() {
           </motion.span>
         ))}
         <motion.span
-          className="absolute left-[30%] top-1/2 grid h-16 w-16 -translate-y-1/2 place-items-center rounded-2xl bg-sun-400 text-xl font-extrabold text-slate-900"
+          className="absolute left-[30%] top-[calc(50%-2rem)] grid h-16 w-16 place-items-center rounded-2xl bg-sun-400 text-xl font-extrabold text-slate-900"
           animate={{ scale: merged ? 1 : 0, rotate: merged ? 0 : -30 }}
           transition={{ type: 'spring', stiffness: 260, damping: 14 }}
         >

@@ -33,7 +33,7 @@ service cloud.firestore {
         resource.data.ownerUid == request.auth.uid
         || (
           request.resource.data.ownerUid == resource.data.ownerUid
-          && onlyKeys(['lastTicket', 'waiting', 'dayKey', 'servedToday', 'updatedAt'])
+          && onlyKeys(['lastTicket', 'waiting', 'dayKey', 'servedToday', 'updatedAt', 'arrivals'])
         )
       );
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;

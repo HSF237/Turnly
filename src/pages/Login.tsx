@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Logo from '../components/Logo';
+import CategoryArt from '../components/CategoryArt';
+import type { Category } from '../lib/types';
+
+const COLLAGE: Category[] = ['bank', 'barber', 'clinic', 'shop', 'government', 'restaurant'];
 import { ErrorNote, Spinner } from '../components/States';
 import { signInWithGoogle } from '../lib/firebase';
 import { useAuth } from '../lib/hooks';
@@ -17,8 +21,32 @@ export default function Login() {
   if (isMember) return <Navigate to={next} replace />;
 
   return (
-    <div className="grid min-h-[calc(100dvh-4rem)] place-items-center px-4">
-      <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="card w-full max-w-sm p-8 text-center">
+    <div className="grid min-h-[calc(100dvh-4rem)] place-items-center px-4 py-8">
+      <div className="grid w-full max-w-4xl items-center gap-10 md:grid-cols-2">
+      <div className="relative mx-auto grid w-full max-w-sm grid-cols-3 gap-3 md:max-w-none">
+        {COLLAGE.map((c, i) => (
+          <motion.div
+            key={c}
+            initial={{ opacity: 0, y: 30, rotate: i % 2 ? 4 : -4 }}
+            animate={{ opacity: 1, y: i % 2 ? 18 : 0, rotate: i % 2 ? 2 : -2 }}
+            transition={{ delay: 0.1 + i * 0.07, type: 'spring', stiffness: 140, damping: 16 }}
+            className="overflow-hidden rounded-2xl shadow-soft ring-1 ring-black/5"
+          >
+            <CategoryArt category={c} className="block aspect-[4/5] h-full w-full" />
+          </motion.div>
+        ))}
+        <div className="absolute -bottom-4 left-0 right-0 flex justify-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.6, type: 'spring' }}
+            className="whitespace-nowrap rounded-full bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow-lift"
+          >
+            Every queue in town, in one app
+          </motion.div>
+        </div>
+      </div>
+      <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="card mx-auto w-full max-w-sm p-8 text-center">
         <Logo size={44} withText={false} />
         <h1 className="mt-4 text-2xl font-extrabold">Welcome to Turnly</h1>
         <p className="mt-1 text-sm text-slate-500">Sign in to run queues for your business. Joining a queue never needs an account.</p>
@@ -51,6 +79,7 @@ export default function Login() {
           </div>
         )}
       </motion.div>
+      </div>
     </div>
   );
 }

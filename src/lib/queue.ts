@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   doc,
+  increment,
   runTransaction,
   updateDoc,
 } from 'firebase/firestore';
@@ -116,6 +117,12 @@ export async function joinQueue(
     }
     tx.update(placeRef(placeId), patch);
     return { id: tRef.id, number };
+  }).then((res) => {
+    // Learn this place's rhythm for "Best time to come". Separate and best-effort:
+    // a failure here must never stop someone joining.
+    const d = new Date();
+    updateDoc(placeRef(placeId), { [`arrivals.${d.getDay()}-${d.getHours()}`]: increment(1) }).catch(() => {});
+    return res;
   });
 }
 

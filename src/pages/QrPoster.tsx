@@ -20,7 +20,7 @@ export default function QrPoster() {
           <Printer size={16} /> Print poster
         </button>
       </div>
-      <div className="mx-auto flex aspect-[1/1.414] max-w-[640px] flex-col items-center justify-between rounded-3xl bg-white p-10 text-center shadow-lift print:max-w-none print:rounded-none print:shadow-none">
+      <div className="mx-auto flex max-w-[640px] flex-col items-center justify-between gap-8 bg-white p-6 text-center shadow-lift sm:aspect-[1/1.414] sm:rounded-3xl sm:p-10 print:aspect-[1/1.414] print:max-w-none print:rounded-none print:shadow-none">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.25em] text-brand-600">Skip the line</p>
           <h1 className="mt-3 text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">{place.name}</h1>
@@ -28,8 +28,8 @@ export default function QrPoster() {
             {CATEGORY_META[place.category].emoji} {place.address}
           </p>
         </div>
-        <div className="rounded-3xl bg-white p-5 ring-8 ring-brand-600">
-          <QRCodeSVG value={url} size={280} level="M" fgColor="#0f172a" />
+        <div className="w-full max-w-[320px] rounded-3xl bg-white p-5 ring-8 ring-brand-600">
+          <QRCodeSVG value={url} size={280} level="M" fgColor="#0f172a" className="h-auto w-full max-w-[280px]" />
         </div>
         <div>
           <p className="text-2xl font-extrabold text-slate-900">Scan to join the queue</p>
