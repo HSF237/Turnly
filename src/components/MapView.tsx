@@ -132,6 +132,8 @@ export default function MapView({
     });
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     m.on('click', (e) => onPickRef.current?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
+    // Start with the attribution collapsed to its small (i) button.
+    m.once('load', () => box.current?.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show'));
     map.current = m;
     return () => m.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps

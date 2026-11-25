@@ -91,7 +91,8 @@ export default function Explore() {
   const estC = liveC ? communityEstimate(liveC.reports ?? []) : null;
 
   return (
-    <div className="grid h-[calc(100dvh-4rem-1px)] grid-cols-1 grid-rows-[40dvh_minmax(0,1fr)] overflow-hidden md:grid-cols-[400px_1fr] md:grid-rows-1">
+    <>
+    <div className="grid h-[calc(100dvh-4rem-1px-env(safe-area-inset-top))] grid-cols-1 grid-rows-[40dvh_minmax(0,1fr)] overflow-hidden md:grid-cols-[400px_1fr] md:grid-rows-1">
       {/* Sidebar */}
       <aside className="order-2 flex min-h-0 min-w-0 flex-col border-r border-slate-200 bg-white md:order-1">
         <div className="space-y-3 border-b border-slate-100 p-4">
@@ -264,7 +265,7 @@ export default function Explore() {
               setPickedPos(null);
               setAdding(true);
             }}
-            className="absolute bottom-4 right-3 z-10 grid h-12 w-12 place-items-center rounded-full bg-brand-600 text-white shadow-lift md:hidden"
+            className="absolute bottom-12 right-3 z-10 grid h-12 w-12 place-items-center rounded-full bg-brand-600 text-white shadow-lift md:hidden"
             aria-label="Add a place"
           >
             <Plus size={22} />
@@ -379,7 +380,9 @@ export default function Explore() {
           )}
         </AnimatePresence>
       </section>
+    </div>
 
+      {/* Sheets live outside the grid so they never take a layout cell */}
       <AnimatePresence>{reporting && <ReportSheet key="report" place={reporting} onClose={() => setReporting(null)} />}</AnimatePresence>
       {/* Kept mounted (hidden) while picking on the map, so typed details aren't lost */}
       <div className={picking ? 'hidden' : ''}>
@@ -403,6 +406,6 @@ export default function Explore() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </>
   );
 }
