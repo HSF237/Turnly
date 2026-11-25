@@ -335,22 +335,22 @@ export default function Counter() {
         {/* Live board */}
         <div className="space-y-6 xl:col-start-1 xl:row-start-1">
           <LayoutGroup>
-            <div className="relative overflow-hidden rounded-3xl bg-slate-950 p-5 text-white shadow-lift sm:p-6">
-              <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-brand-600/30 blur-3xl" />
+            <div className="relative overflow-hidden rounded-3xl bg-white p-5 text-slate-900 shadow-soft ring-1 ring-slate-200/70 sm:p-6">
+              <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-brand-100/70 blur-3xl" />
               <div className="relative flex items-center justify-between gap-3">
-                <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-slate-400">
+                <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-slate-500">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-70" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-400" />
                   </span>
                   Live board
                 </p>
-                <div className="flex items-center gap-1 rounded-xl bg-white/5 p-1 ring-1 ring-white/10">
-                  <button className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10" title="Remove a counter" onClick={() => run(() => updatePlace(place.id, { counters: Math.max(1, place.counters - 1) }))}>
+                <div className="flex items-center gap-1 rounded-xl bg-slate-50 p-1 ring-1 ring-slate-200">
+                  <button className="rounded-lg p-1.5 text-slate-500 hover:bg-white" title="Remove a counter" onClick={() => run(() => updatePlace(place.id, { counters: Math.max(1, place.counters - 1) }))}>
                     <Minus size={14} />
                   </button>
-                  <span className="px-1 text-xs font-bold text-slate-300">{place.counters} counter{place.counters > 1 ? 's' : ''}</span>
-                  <button className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10" title="Add a counter" onClick={() => run(() => updatePlace(place.id, { counters: Math.min(30, place.counters + 1) }))}>
+                  <span className="px-1 text-xs font-bold text-slate-600">{place.counters} counter{place.counters > 1 ? 's' : ''}</span>
+                  <button className="rounded-lg p-1.5 text-slate-500 hover:bg-white" title="Add a counter" onClick={() => run(() => updatePlace(place.id, { counters: Math.min(30, place.counters + 1) }))}>
                     <Plus size={14} />
                   </button>
                 </div>
@@ -366,12 +366,12 @@ export default function Counter() {
                       layoutId={`tok-${t.id}`}
                       transition={{ type: 'spring', stiffness: 260, damping: 26 }}
                       className={`flex h-12 min-w-[3.25rem] flex-col items-center justify-center rounded-2xl px-2 ${
-                        i === 0 ? 'bg-brand-500 text-white shadow-[0_8px_24px_-8px_rgba(14,165,143,.9)]' : 'bg-white/10 text-white'
+                        i === 0 ? 'bg-brand-500 text-white shadow-[0_8px_24px_-8px_rgba(14,165,143,.9)]' : 'bg-slate-100 text-slate-800'
                       }`}
                       title={t.name}
                     >
                       <span className="text-lg font-extrabold leading-none">{t.number}</span>
-                      <span className="mt-0.5 max-w-[3rem] truncate text-[9px] font-semibold text-white/60">{t.name.split(' ')[0]}</span>
+                      <span className="mt-0.5 max-w-[3rem] truncate text-[9px] font-semibold opacity-60">{t.name.split(' ')[0]}</span>
                     </motion.div>
                   ))}
                   {waiting.length > 10 && <span className="text-sm font-bold text-slate-400">+{waiting.length - 10}</span>}
@@ -384,10 +384,10 @@ export default function Counter() {
                 {Array.from({ length: place.counters }, (_, i) => i + 1).map((c) => {
                   const cur = calledByCounter.get(c) ?? null;
                   return (
-                    <div key={c} className="rounded-2xl bg-white/[0.06] p-4 ring-1 ring-white/10">
+                    <div key={c} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200/80">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-bold text-slate-300">Counter {c}</p>
-                        {c <= 9 && <span className="hidden rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 lg:inline" title={`Press ${c} on the keyboard to call the next person here`}>key {c}</span>}
+                        <p className="text-sm font-bold text-slate-600">Counter {c}</p>
+                        {c <= 9 && <span className="hidden rounded-md bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-400 ring-1 ring-slate-200 lg:inline" title={`Press ${c} on the keyboard to call the next person here`}>key {c}</span>}
                       </div>
                       <div className="mt-3 flex min-h-[5.5rem] items-center gap-3">
                         <AnimatePresence mode="popLayout">
@@ -407,7 +407,7 @@ export default function Counter() {
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
-                              className="grid h-20 min-w-[5.5rem] place-items-center rounded-2xl border-2 border-dashed border-white/15 text-sm font-bold text-slate-500"
+                              className="grid h-20 min-w-[5.5rem] place-items-center rounded-2xl border-2 border-dashed border-slate-300 text-sm font-bold text-slate-400"
                             >
                               Free
                             </motion.div>
@@ -418,7 +418,7 @@ export default function Counter() {
                             <>
                               <p className="truncate font-bold">
                                 {cur.name}
-                                {cur.partySize > 1 && <span className="ml-1.5 text-xs font-bold text-sun-300">+{cur.partySize - 1}</span>}
+                                {cur.partySize > 1 && <span className="ml-1.5 text-xs font-bold text-sun-600">+{cur.partySize - 1}</span>}
                               </p>
                               <p className="text-xs text-slate-400">Called {cur.calledAt ? timeAgo(cur.calledAt) : ''}</p>
                             </>
@@ -430,16 +430,16 @@ export default function Counter() {
                       <div className="mt-4 grid grid-cols-[1fr_auto_auto] gap-2">
                         <motion.button
                           whileTap={{ scale: 0.95 }}
-                          className="btn bg-brand-500 py-3 text-base text-white shadow-[0_10px_24px_-10px_rgba(14,165,143,.9)] hover:bg-brand-400"
+                          className="btn bg-brand-600 py-3 text-base text-white shadow-[0_10px_24px_-10px_rgba(14,165,143,.7)] hover:bg-brand-500"
                           disabled={busy || (!waiting.length && !cur)}
                           onClick={() => run(() => (waiting.length ? callNext(place, tickets, c) : finishCounter(place, tickets, c)))}
                         >
                           <BellRing size={18} /> {waiting.length ? 'Call next' : 'Finish'}
                         </motion.button>
-                        <button className="btn bg-white/10 px-3 text-white hover:bg-white/15" title="Recall" disabled={busy || !cur} onClick={() => cur && run(() => recall(place.id, cur))}>
+                        <button className="btn bg-white px-3 text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" title="Recall" disabled={busy || !cur} onClick={() => cur && run(() => recall(place.id, cur))}>
                           <Megaphone size={16} />
                         </button>
-                        <button className="btn bg-white/10 px-3 text-white hover:bg-white/15" title="Done" disabled={busy || !cur} onClick={() => run(() => finishCounter(place, tickets, c))}>
+                        <button className="btn bg-white px-3 text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" title="Done" disabled={busy || !cur} onClick={() => run(() => finishCounter(place, tickets, c))}>
                           <Check size={16} />
                         </button>
                       </div>

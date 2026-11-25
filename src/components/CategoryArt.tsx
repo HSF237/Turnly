@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react';
+import { PLACE_ART } from '../lib/art';
 import type { Category } from '../lib/types';
 
 /**
@@ -211,6 +212,8 @@ const SCENES: Record<Category, (id: string) => ReactNode> = {
 
 export default function CategoryArt({ category, className = '' }: { category: Category; className?: string }) {
   const uid = useId().replace(/:/g, '');
+  const img = PLACE_ART[category];
+  if (img) return <img src={img} alt="" aria-hidden="true" className={`${className} object-cover`} />;
   const [top, bottom] = SKY[category] ?? SKY.other;
   return (
     <svg viewBox="0 0 200 120" preserveAspectRatio="xMidYMid slice" className={className} aria-hidden>

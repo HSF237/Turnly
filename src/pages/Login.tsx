@@ -25,7 +25,7 @@ export default function Login() {
   if (isMember) return <Navigate to={next} replace />;
 
   return (
-    <div className="grid min-h-[calc(100dvh-4rem)] place-items-center px-4 py-8 xl:min-h-dvh">
+    <div className="grid min-h-[calc(100dvh-4rem)] place-items-center px-4 py-8">
       <div className="grid w-full max-w-4xl items-center gap-10 md:grid-cols-2">
       <div className="relative mx-auto grid w-full max-w-sm grid-cols-3 gap-3 md:max-w-none">
         {COLLAGE.map((c, i) => (

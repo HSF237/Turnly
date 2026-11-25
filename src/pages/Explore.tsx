@@ -108,7 +108,7 @@ export default function Explore() {
 
   return (
     <>
-    <div className="grid h-[calc(100dvh-4rem-1px-env(safe-area-inset-top))] grid-cols-1 xl:h-dvh lg:grid-cols-[420px_1fr] grid-rows-[40dvh_minmax(0,1fr)] overflow-hidden md:grid-cols-[400px_1fr] md:grid-rows-1">
+    <div className="grid h-[calc(100dvh-4rem-1px-env(safe-area-inset-top))] grid-cols-1 lg:grid-cols-[420px_1fr] grid-rows-[40dvh_minmax(0,1fr)] overflow-hidden md:grid-cols-[400px_1fr] md:grid-rows-1">
       {/* Sidebar */}
       <aside className="order-2 flex min-h-0 min-w-0 flex-col border-r border-slate-200 bg-white md:order-1">
         <div className="space-y-3 border-b border-slate-100 p-4">

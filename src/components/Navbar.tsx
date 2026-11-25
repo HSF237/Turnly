@@ -13,8 +13,8 @@ export default function Navbar() {
   const { pathname } = useLocation();
 
   return (
-    <header className="sticky top-0 z-40 border-b xl:hidden border-slate-200/70 bg-white/95 backdrop-blur-xl backdrop-saturate-150" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <div className="container-x flex h-16 items-center justify-between gap-3">
+    <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/95 backdrop-blur-xl backdrop-saturate-150" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="container-x flex h-16 items-center justify-between gap-3 xl:max-w-[1240px]">
         <Link to="/" aria-label="Turnly home" className="transition hover:opacity-80">
           <Logo />
         </Link>
