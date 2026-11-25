@@ -5,7 +5,8 @@ import type { Place } from '../lib/types';
 import { CATEGORY_META } from '../lib/types';
 import { formatMinutes, LEVEL_STYLE, placeWaitMinutes, waitLevel } from '../lib/predict';
 
-const KEY = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
+// MapTiler browser key (public by design; restrict allowed origins in MapTiler Cloud).
+const KEY = (import.meta.env.VITE_MAPTILER_KEY as string | undefined) || 'EbgjYuOOJU9r6fRKjGnu';
 
 const OSM_STYLE: StyleSpecification = {
   version: 8,
