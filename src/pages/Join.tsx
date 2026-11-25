@@ -7,6 +7,7 @@ import CategoryArt from '../components/CategoryArt';
 import WaitBadge from '../components/WaitBadge';
 import PrintTicket from '../components/PrintTicket';
 import BestTime from '../components/BestTime';
+import { isOnTime, onTimeRate } from '../lib/speed';
 import { Empty, ErrorNote, Spinner } from '../components/States';
 import { ensureGuest } from '../lib/firebase';
 import { usePlace } from '../lib/hooks';
@@ -73,9 +74,16 @@ export default function Join() {
             <CategoryArt category={place.category} className="h-full w-full" />
             <div className="absolute inset-0 bg-gradient-to-b from-slate-950/10 via-slate-950/60 to-slate-950/95" />
           </div>
-          <span className="chip bg-white/15 text-white ring-white/20 backdrop-blur">
-            {CATEGORY_META[place.category].emoji} {CATEGORY_META[place.category].label}
-          </span>
+          <div className="flex flex-wrap gap-2">
+            <span className="chip bg-white/15 text-white ring-white/20 backdrop-blur">
+              {CATEGORY_META[place.category].emoji} {CATEGORY_META[place.category].label}
+            </span>
+            {isOnTime(place) && (
+              <span className="chip bg-brand-500/90 text-white ring-brand-300/40" title="Serves people within the time Turnly predicts">
+                ✓ On time {onTimeRate(place)}%
+              </span>
+            )}
+          </div>
           <h1 className="mt-2 text-3xl font-extrabold leading-tight">{place.name}</h1>
           {place.address && (
             <p className="mt-1 flex items-center gap-1 text-sm text-slate-300">

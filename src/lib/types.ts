@@ -43,6 +43,8 @@ export interface Place {
   teacher?: { name: string; subject: string; room: string } | null;
   /** Learned arrivals: "weekday-hour" → number of people who joined (weekday 0 = Sunday). */
   arrivals?: Record<string, number>;
+  /** Speed badge stats: how many calls were measured, and how many came within the promised time. */
+  speed?: { n: number; onTime: number };
 }
 
 export interface SchoolEvent {
@@ -57,6 +59,27 @@ export interface SchoolEvent {
   teacherIds: string[];
   isOpen: boolean;
   createdAt: number;
+}
+
+/** One crowd report: "it's about m minutes here". v = reporter was confirmed on site. */
+export interface CommunityReport {
+  m: number;
+  at: number;
+  v: boolean;
+}
+
+/** A place that isn't on Turnly yet, kept live by people standing in its line. */
+export interface CommunityPlace {
+  id: string;
+  name: string;
+  category: Category;
+  address: string;
+  lat: number;
+  lng: number;
+  createdBy: string;
+  createdAt: number;
+  updatedAt: number;
+  reports: CommunityReport[];
 }
 
 export interface SwapRequest {
@@ -90,6 +113,8 @@ export interface Ticket {
   swappedAt?: number | null;
   /** Busy elsewhere (e.g. with another teacher): staff skip this ticket until then. */
   deferUntil?: number | null;
+  /** The wait Turnly predicted when this person joined (minutes), to check ourselves later. */
+  promisedMin?: number | null;
 }
 
 export const CATEGORY_META: Record<Category, { label: string; emoji: string }> = {

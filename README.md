@@ -32,6 +32,13 @@ Entry for the 6th International Digital Fest 2027 (Web & Mobile Applications), A
 - **Best time to come**: each place learns its busy hours from every join (by weekday and hour)
 - Mobile fixes: Explore bottom sheet, focused join/ticket flows without the tab bar, QR poster on phones
 
+## Round 6
+
+- **Community mode**: anyone can add a place that isn't on Turnly and report its wait from the line. The estimate is a **recency-weighted median** (reports halve in weight every 25 min, ignored after 90 min, on-site reports count 1.5×), so one wrong report can't skew it (`src/lib/community.ts`)
+- **City pulse** heat layer on the live map, weighted by current waits
+- **Speed badges**: each join stores the wait Turnly promised; on call we check it, and places that keep 80%+ of promises (5+ calls) earn "On time" (`src/lib/speed.ts`)
+- "Reported by people nearby" on the home screen
+
 ## Coming next
 
 Community mode (crowd-reported waits), City pulse on live data, Best time to come from history, Speed badges, Wait somewhere better.

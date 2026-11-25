@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import maplibregl, { type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { Place } from '../lib/types';
+import type { CommunityPlace, Place } from '../lib/types';
 import { CATEGORY_META } from '../lib/types';
+import { communityEstimate } from '../lib/community';
 import { formatMinutes, LEVEL_STYLE, placeWaitMinutes, waitLevel } from '../lib/predict';
 
 // MapTiler browser key (public by design; restrict allowed origins in MapTiler Cloud).
@@ -43,7 +44,32 @@ interface Props {
   route?: { lat: number; lng: number }[] | null;
   /** Stop numbers to show on markers, by place id. */
   order?: Record<string, number>;
+  /** Places reported by the community (not on Turnly yet). */
+  community?: CommunityPlace[];
+  onSelectCommunity?: (c: CommunityPlace) => void;
+  /** Show the live "city pulse" heat layer. */
+  heat?: boolean;
   className?: string;
+}
+
+function communityEl(c: CommunityPlace, selected: boolean, drop = false, delay = 0) {
+  const est = communityEstimate(c.reports ?? []);
+  const lvl = waitLevel(est ? est.minutes : null);
+  const color = est ? LEVEL_STYLE[lvl].hex : '#94a3b8';
+  const label = est ? `~${formatMinutes(est.minutes)}` : 'Report';
+  const el = document.createElement('div');
+  el.className = drop ? 'turnly-marker drop' : 'turnly-marker';
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 10px rgba(15,23,42,.18));transform:scale(${selected ? 1.12 : 1});transition:transform .2s;animation-delay:${delay}ms">
+      <div style="display:flex;align-items:center;gap:6px;background:white;border-radius:999px;padding:5px 10px 5px 6px;border:2px dashed ${color};font:600 12px 'Plus Jakarta Sans',system-ui;color:#0f172a;white-space:nowrap">
+        <span style="display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:${color}22;font-size:13px">${CATEGORY_META[c.category]?.emoji ?? '📍'}</span>
+        ${label}
+        <span style="font-size:10px;color:#64748b">👥</span>
+      </div>
+      <div style="width:2px;height:8px;background:${color}"></div>
+      <div style="width:8px;height:8px;border-radius:999px;background:${color};border:2px solid white"></div>
+    </div>`;
+  return el;
 }
 
 function markerEl(p: Place, selected: boolean, stop?: number, drop = false, delay = 0) {
@@ -69,7 +95,22 @@ function markerEl(p: Place, selected: boolean, stop?: number, drop = false, dela
   return el;
 }
 
-export default function MapView({ places = [], center, zoom = 13, selectedId, onSelect, picked, onPick, me, route, order, className = '' }: Props) {
+export default function MapView({
+  places = [],
+  center,
+  zoom = 13,
+  selectedId,
+  onSelect,
+  picked,
+  onPick,
+  me,
+  route,
+  order,
+  community = [],
+  onSelectCommunity,
+  heat = false,
+  className = '',
+}: Props) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<maplibregl.Marker[]>([]);
@@ -100,15 +141,16 @@ export default function MapView({ places = [], center, zoom = 13, selectedId, on
   const framed = useRef(false);
   useEffect(() => {
     const m = map.current;
-    if (!m || framed.current || center || picked || !places.length || route) return;
+    const pts = [...places, ...community];
+    if (!m || framed.current || center || picked || !pts.length || route) return;
     framed.current = true;
-    if (places.length === 1) m.jumpTo({ center: [places[0].lng, places[0].lat], zoom: 14 });
+    if (pts.length === 1) m.jumpTo({ center: [pts[0].lng, pts[0].lat], zoom: 14 });
     else {
       const b = new maplibregl.LngLatBounds();
-      places.forEach((p) => b.extend([p.lng, p.lat]));
+      pts.forEach((p) => b.extend([p.lng, p.lat]));
       m.fitBounds(b, { padding: 70, maxZoom: 15, duration: 0 });
     }
-  }, [places.length]);
+  }, [places.length, community.length]);
 
   useEffect(() => {
     if (center && map.current) map.current.flyTo({ center: [center.lng, center.lat], zoom: Math.max(map.current.getZoom(), 14), speed: 1.4 });
@@ -129,7 +171,69 @@ export default function MapView({ places = [], center, zoom = 13, selectedId, on
       });
       return new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([p.lng, p.lat]).addTo(m);
     });
-  }, [places, selectedId, onSelect, order]);
+    for (const c of community) {
+      const isNew = !seenIds.current.has(c.id);
+      seenIds.current.add(c.id);
+      const el = communityEl(c, c.id === selectedId, isNew, isNew ? 120 * fresh++ : 0);
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        onSelectCommunity?.(c);
+      });
+      markers.current.push(new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([c.lng, c.lat]).addTo(m));
+    }
+  }, [places, community, selectedId, onSelect, onSelectCommunity, order]);
+
+  // Live "city pulse" heat layer: every place glows by its current wait.
+  const heatKey = [...places.map((p) => `${p.id}:${placeWaitMinutes(p)}`), ...community.map((c) => `${c.id}:${communityEstimate(c.reports ?? [])?.minutes}`)].join('|');
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    const apply = () => {
+      const features = [
+        ...places.map((p) => ({ lng: p.lng, lat: p.lat, w: placeWaitMinutes(p) ?? 0 })),
+        ...community.map((c) => ({ lng: c.lng, lat: c.lat, w: communityEstimate(c.reports ?? [])?.minutes ?? 0 })),
+      ].map((f) => ({
+        type: 'Feature' as const,
+        properties: { w: Math.min(60, f.w) },
+        geometry: { type: 'Point' as const, coordinates: [f.lng, f.lat] },
+      }));
+      const data = { type: 'FeatureCollection' as const, features };
+      const src = m.getSource('heat') as maplibregl.GeoJSONSource | undefined;
+      if (src) src.setData(data);
+      else {
+        m.addSource('heat', { type: 'geojson', data });
+        m.addLayer({
+          id: 'heat',
+          type: 'heatmap',
+          source: 'heat',
+          paint: {
+            'heatmap-weight': ['interpolate', ['linear'], ['get', 'w'], 0, 0.25, 60, 1],
+            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 8, 0.8, 15, 2],
+            'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 8, 30, 15, 90],
+            'heatmap-opacity': 0.75,
+            'heatmap-color': [
+              'interpolate',
+              ['linear'],
+              ['heatmap-density'],
+              0,
+              'rgba(14,165,143,0)',
+              0.25,
+              'rgba(14,165,143,0.55)',
+              0.5,
+              'rgba(251,171,48,0.7)',
+              0.8,
+              'rgba(239,68,68,0.8)',
+              1,
+              'rgba(185,28,28,0.9)',
+            ],
+          },
+        });
+      }
+      m.setLayoutProperty('heat', 'visibility', heat ? 'visible' : 'none');
+    };
+    if (m.isStyleLoaded()) apply();
+    else m.once('load', apply);
+  }, [heat, heatKey]);
 
   // Route line (animated dash) through the planned stops.
   const routeKey = route?.map((r) => `${r.lat.toFixed(5)},${r.lng.toFixed(5)}`).join('|') ?? '';

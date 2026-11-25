@@ -3,7 +3,7 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import { collection, doc, limit, onSnapshot, query, where } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { todayKey } from './time';
-import type { Place, SchoolEvent, Ticket } from './types';
+import type { CommunityPlace, Place, SchoolEvent, Ticket } from './types';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(auth.currentUser);
@@ -208,4 +208,21 @@ export function useMultiTickets(placeIds: string[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, day]);
   return map;
+}
+
+export function useCommunity() {
+  const [places, setPlaces] = useState<CommunityPlace[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const q = query(collection(db, 'community'), limit(300));
+    return onSnapshot(
+      q,
+      (snap) => {
+        setPlaces(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as CommunityPlace));
+        setLoading(false);
+      },
+      () => setLoading(false),
+    );
+  }, []);
+  return { places, loading };
 }

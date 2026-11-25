@@ -34,6 +34,7 @@ import {
   updatePlace,
 } from '../lib/queue';
 import { clock, timeAgo, todayKey } from '../lib/time';
+import { isOnTime, onTimeRate } from '../lib/speed';
 import type { Place, Ticket } from '../lib/types';
 
 function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
@@ -222,7 +223,11 @@ export default function Counter() {
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Waiting now" value={waiting.length} hint={`${waiting.reduce((s, t) => s + t.partySize, 0)} people incl. families`} />
         <Stat label="Served today" value={place.dayKey === today ? place.servedToday : 0} hint={`${done} finished`} />
-        <Stat label="Avg per customer" value={formatMinutes(Math.max(1, Math.round(place.avgServiceSec / 60)))} hint="learned live" />
+        <Stat
+          label="Avg per customer"
+          value={formatMinutes(Math.max(1, Math.round(place.avgServiceSec / 60)))}
+          hint={onTimeRate(place) !== null ? `${onTimeRate(place)}% on time${isOnTime(place) ? ' · badge earned ✓' : ''}` : 'learned live'}
+        />
         <Stat label="New arrival waits" value={formatMinutes(placeWaitMinutes(place))} hint={`${place.counters} counter${place.counters > 1 ? 's' : ''} open`} />
       </div>
 

@@ -7,7 +7,8 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { nextAverage } from './predict';
+import { estimateMinutes, nextAverage } from './predict';
+import { wasOnTime } from './speed';
 import { todayKey } from './time';
 import type { Category, Place, Ticket } from './types';
 
@@ -108,6 +109,7 @@ export async function joinQueue(
       doneAt: null,
       counter: null,
       walkIn: !!opts.walkIn,
+      promisedMin: estimateMinutes(sameDay ? p.waiting : 0, p.avgServiceSec, p.counters),
     };
     tx.set(tRef, ticket);
     const patch: Record<string, unknown> = { lastTicket: number, waiting, updatedAt: Date.now() };
@@ -163,6 +165,12 @@ export async function callNext(place: Place, tickets: Ticket[], counter: number)
       });
       patch.waiting = Math.max(0, p.waiting - 1);
       patch.servedToday = (p.servedToday || 0) + 1;
+      // Speed badge: did we keep the promise we made when they joined? (Test walk-ins don't count.)
+      const ok = next.walkIn ? null : wasOnTime(next, now);
+      if (ok !== null) {
+        const sp = p.speed ?? { n: 0, onTime: 0 };
+        patch.speed = { n: sp.n + 1, onTime: sp.onTime + (ok ? 1 : 0) };
+      }
     }
     tx.update(placeRef(place.id), patch);
     return next && nextSnapOk ? next : null;

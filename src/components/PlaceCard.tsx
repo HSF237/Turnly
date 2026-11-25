@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Users } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Users } from 'lucide-react';
+import { isOnTime } from '../lib/speed';
 import CategoryArt from './CategoryArt';
 import WaitBadge from './WaitBadge';
 import { placeWaitMinutes } from '../lib/predict';
@@ -34,6 +35,11 @@ export default function PlaceCard({ place, distance = null, i = 0, wide = false 
           <span className="absolute left-3 top-3">
             <WaitBadge minutes={min} />
           </span>
+          {isOnTime(place) && (
+            <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[11px] font-extrabold text-brand-700 shadow-soft">
+              <BadgeCheck size={13} /> On time
+            </span>
+          )}
           <span className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-slate-900/60 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">
             <Users size={12} /> {waiting} in line
             <span className="ml-0.5 flex gap-0.5">

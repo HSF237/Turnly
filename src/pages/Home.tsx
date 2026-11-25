@@ -7,10 +7,11 @@ import CityPulse from '../components/CityPulse';
 import Footer from '../components/Footer';
 import InstallCard from '../components/InstallCard';
 import PlaceCard from '../components/PlaceCard';
+import CommunityCard from '../components/CommunityCard';
 import SplitFlap from '../components/SplitFlap';
 import TokenCard from '../components/TokenCard';
 import { Skeleton } from '../components/States';
-import { useAuth, useGeolocation, usePlaces } from '../lib/hooks';
+import { useAuth, useCommunity, useGeolocation, usePlaces } from '../lib/hooks';
 import { placeWaitMinutes } from '../lib/predict';
 import { allRememberedTickets } from '../lib/queue';
 import { distanceM, todayKey } from '../lib/time';
@@ -81,6 +82,7 @@ function Carousel({ children }: { children: React.ReactNode }) {
 export default function Home() {
   const { user, isMember } = useAuth();
   const { places, loading } = usePlaces();
+  const { places: community } = useCommunity();
   const geo = useGeolocation();
   const navigate = useNavigate();
   const [q, setQ] = useState('');
@@ -282,6 +284,39 @@ export default function Home() {
                 <PlaceCard key={p.id} place={p} distance={dist} i={i} />
               ))}
             </Carousel>
+          )}
+        </section>
+
+        {/* ── Community ── */}
+        <section>
+          <SectionTitle
+            title="Reported by people nearby"
+            sub="Places not on Turnly yet, kept live by people standing in line."
+            action={
+              <Link to="/explore" className="whitespace-nowrap text-sm font-bold text-brand-700">
+                + Add a place
+              </Link>
+            }
+          />
+          {community.length ? (
+            <div className="no-scrollbar -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-4 pt-1 sm:-mx-6 sm:px-6">
+              {[...community]
+                .sort((a, b) => b.updatedAt - a.updatedAt)
+                .map((c, i) => (
+                  <CommunityCard key={c.id} place={c} i={i} />
+                ))}
+            </div>
+          ) : (
+            <Link
+              to="/explore"
+              className="flex items-center gap-4 rounded-3xl border-2 border-dashed border-slate-200 p-5 transition hover:border-brand-300 hover:bg-brand-50/40"
+            >
+              <span className="text-3xl">👥</span>
+              <span>
+                <span className="block font-extrabold">Standing in a line right now?</span>
+                <span className="block text-sm text-slate-500">Add the place and share the wait. You'll save the next person a wasted trip.</span>
+              </span>
+            </Link>
           )}
         </section>
 
