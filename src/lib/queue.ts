@@ -245,6 +245,18 @@ export function rememberedTicket(placeId: string): string | null {
     return null;
   }
 }
+/** All of today's remembered tickets on this device. */
+export function allRememberedTickets(): { placeId: string; ticketId: string }[] {
+  try {
+    const all = JSON.parse(localStorage.getItem(KEY) || '{}') as Record<string, { ticketId: string; day: string }>;
+    return Object.entries(all)
+      .filter(([, v]) => v.day === todayKey())
+      .map(([placeId, v]) => ({ placeId, ticketId: v.ticketId }));
+  } catch {
+    return [];
+  }
+}
+
 export function forgetTicket(placeId: string) {
   try {
     const all = JSON.parse(localStorage.getItem(KEY) || '{}');

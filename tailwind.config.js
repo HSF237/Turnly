@@ -45,10 +45,28 @@ export default {
           '0%,100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-8px)' },
         },
+        aurora: {
+          '0%,100%': { transform: 'translate(0,0) scale(1)' },
+          '33%': { transform: 'translate(8%,6%) scale(1.12)' },
+          '66%': { transform: 'translate(-4%,10%) scale(.94)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        marquee: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
       },
       animation: {
         pulseRing: 'pulseRing 2.4s ease-out infinite',
         floaty: 'floaty 5s ease-in-out infinite',
+        aurora: 'aurora 18s ease-in-out infinite',
+        aurora2: 'aurora 24s ease-in-out infinite reverse',
+        aurora3: 'aurora 30s ease-in-out infinite',
+        shimmer: 'shimmer 2.2s linear infinite',
+        marquee: 'marquee 40s linear infinite',
       },
     },
   },

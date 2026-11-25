@@ -84,7 +84,7 @@ export default function Explore() {
             <span className="text-slate-400">{list.length} places</span>
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-28 md:pb-3">
           {error && <ErrorNote message={error} />}
           {loading && <p className="p-4 text-sm text-slate-500">Loading live queues…</p>}
           {!loading && !list.length && (

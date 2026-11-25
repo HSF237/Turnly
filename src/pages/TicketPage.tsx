@@ -8,6 +8,7 @@ import { formatMinutes, ticketPosition } from '../lib/predict';
 import { checkIn, forgetTicket, leaveQueue, markDone } from '../lib/queue';
 import { buzz, chime, notify } from '../lib/speech';
 import { distanceM } from '../lib/time';
+import { travelMinutes } from '../lib/planner';
 
 function Ring({ progress, children }: { progress: number; children: React.ReactNode }) {
   const r = 108;
@@ -32,12 +33,6 @@ function Ring({ progress, children }: { progress: number; children: React.ReactN
       <div className="absolute inset-0 grid place-items-center text-center">{children}</div>
     </div>
   );
-}
-
-/** Rough travel time without an API: walking under 1.5 km, city traffic above. */
-function travelMinutes(meters: number) {
-  if (meters < 1500) return Math.round(meters / 80); // ~4.8 km/h
-  return Math.round(meters / 400) + 3; // ~24 km/h + parking
 }
 
 export default function TicketPage() {
