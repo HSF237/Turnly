@@ -30,7 +30,7 @@ function Ring({ progress, children }: { progress: number; children: React.ReactN
           strokeLinecap="round"
           fill="none"
           strokeDasharray={c}
-          animate={{ strokeDashoffset: c * (1 - Math.max(0.02, Math.min(1, progress))) }}
+          animate={{ strokeDashoffset: c * (1 - Math.max(0.1, Math.min(1, progress))) }}
           transition={{ type: 'spring', stiffness: 60, damping: 18 }}
         />
       </svg>

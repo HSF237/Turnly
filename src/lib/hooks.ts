@@ -4,8 +4,10 @@ import { collection, doc, limit, onSnapshot, query, where } from 'firebase/fires
 import { auth, db } from './firebase';
 import { todayKey } from './time';
 import type { CommunityPlace, Place, SchoolEvent, Ticket } from './types';
+import { useMock } from './mock';
 
 export function useAuth() {
+  const mock = useMock();
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [loading, setLoading] = useState(!auth.currentUser);
   useEffect(
@@ -16,15 +18,17 @@ export function useAuth() {
       }),
     [],
   );
+  if (mock?.user) return { user: { ...mock.user, isAnonymous: false } as unknown as User, loading: false, isMember: true };
   return { user, loading, isMember: !!user && !user.isAnonymous };
 }
 
 export function usePlace(placeId: string | undefined) {
+  const mock = useMock();
   const [place, setPlace] = useState<Place | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    if (!placeId) return;
+    if (mock || !placeId) return;
     setLoading(true);
     return onSnapshot(
       doc(db, 'places', placeId),
@@ -38,16 +42,18 @@ export function usePlace(placeId: string | undefined) {
       },
     );
   }, [placeId]);
+  if (mock?.places) return { place: mock.places.find((p) => p.id === placeId) ?? null, loading: false, error: null };
   return { place, loading, error };
 }
 
 /** Today's tickets for a place, sorted by token number. */
 export function useTickets(placeId: string | undefined) {
+  const mock = useMock();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const day = todayKey();
   useEffect(() => {
-    if (!placeId) return;
+    if (mock || !placeId) return;
     const q = query(collection(db, 'places', placeId, 'tickets'), where('dayKey', '==', day));
     return onSnapshot(
       q,
@@ -60,14 +66,17 @@ export function useTickets(placeId: string | undefined) {
       () => setLoading(false),
     );
   }, [placeId, day]);
+  if (mock?.tickets) return { tickets: [...(mock.tickets[placeId ?? ''] ?? [])].sort((a, b) => a.number - b.number), loading: false };
   return { tickets, loading };
 }
 
 export function usePlaces() {
+  const mock = useMock();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
+    if (mock) return;
     const q = query(collection(db, 'places'), limit(300));
     return onSnapshot(
       q,
@@ -81,14 +90,16 @@ export function usePlaces() {
       },
     );
   }, []);
+  if (mock?.places) return { places: mock.places.filter((p) => !p.hidden), loading: false, error: null };
   return { places, loading, error };
 }
 
 export function useMyPlaces(uid: string | undefined) {
+  const mock = useMock();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    if (!uid) return;
+    if (mock || !uid) return;
     const q = query(collection(db, 'places'), where('ownerUid', '==', uid));
     return onSnapshot(
       q,
@@ -101,6 +112,7 @@ export function useMyPlaces(uid: string | undefined) {
       () => setLoading(false),
     );
   }, [uid]);
+  if (mock?.places) return { places: mock.places.filter((p) => !p.hidden && p.ownerUid === uid), loading: false };
   return { places, loading };
 }
 
@@ -193,11 +205,12 @@ export function useMySchoolEvents(uid: string | undefined) {
 
 /** Today's tickets for many places at once: placeId → tickets. */
 export function useMultiTickets(placeIds: string[]) {
+  const mock = useMock();
   const [map, setMap] = useState<Record<string, Ticket[]>>({});
   const day = todayKey();
   const key = placeIds.join(',');
   useEffect(() => {
-    if (!placeIds.length) return;
+    if (mock || !placeIds.length) return;
     const unsubs = placeIds.map((pid) =>
       onSnapshot(query(collection(db, 'places', pid, 'tickets'), where('dayKey', '==', day)), (snap) => {
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Ticket).sort((a, b) => a.number - b.number);
@@ -207,13 +220,16 @@ export function useMultiTickets(placeIds: string[]) {
     return () => unsubs.forEach((u) => u());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, day]);
+  if (mock?.tickets) return Object.fromEntries(placeIds.map((id) => [id, mock.tickets![id] ?? []]));
   return map;
 }
 
 export function useCommunity() {
+  const mock = useMock();
   const [places, setPlaces] = useState<CommunityPlace[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
+    if (mock) return;
     const q = query(collection(db, 'community'), limit(300));
     return onSnapshot(
       q,
@@ -224,5 +240,6 @@ export function useCommunity() {
       () => setLoading(false),
     );
   }, []);
+  if (mock) return { places: mock.community ?? [], loading: false };
   return { places, loading };
 }

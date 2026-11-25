@@ -175,6 +175,16 @@ export default function Explore() {
                       </div>
                       <WaitBadge minutes={it.min} approx={it.kind === 'community'} empty={it.kind === 'community' ? 'Unknown' : 'Closed'} />
                     </div>
+                    {it.min !== null && (
+                      <div className="ml-[4.25rem] mt-2 h-1 overflow-hidden rounded-full bg-slate-100">
+                        <motion.div
+                          className={`h-full rounded-full ${it.min <= 10 ? 'bg-brand-500' : it.min <= 30 ? 'bg-sun-400' : 'bg-rose-500'}`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.max(4, Math.min(100, (it.min / 60) * 100))}%` }}
+                          transition={{ duration: 0.9, delay: 0.15 + Math.min(i, 10) * 0.04, ease: [0.2, 0.8, 0.2, 1] }}
+                        />
+                      </div>
+                    )}
                   </button>
                 </motion.li>
               );

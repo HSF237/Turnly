@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import {
   BellRing,
   Check,
@@ -15,12 +15,11 @@ import {
   Printer,
   SkipForward,
   UserPlus,
-  Users,
 } from 'lucide-react';
 import { Empty, ErrorNote, Spinner } from '../components/States';
 import WaitBadge from '../components/WaitBadge';
-import SplitFlap from '../components/SplitFlap';
 import CategoryArt from '../components/CategoryArt';
+import BestTime from '../components/BestTime';
 import { useAuth, usePlace, useTick, useTickets } from '../lib/hooks';
 import { formatMinutes, placeWaitMinutes } from '../lib/predict';
 import {
@@ -43,33 +42,6 @@ function Stat({ label, value, hint }: { label: string; value: React.ReactNode; h
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-extrabold text-slate-900">{value}</p>
       {hint && <p className="text-xs text-slate-400">{hint}</p>}
-    </div>
-  );
-}
-
-function HoursChart({ tickets }: { tickets: Ticket[] }) {
-  const hours = Array.from({ length: 14 }, (_, i) => i + 8); // 8am–9pm
-  const counts = hours.map((h) => tickets.filter((t) => new Date(t.createdAt).getHours() === h).length);
-  const max = Math.max(1, ...counts);
-  const nowH = new Date().getHours();
-  return (
-    <div className="card p-5">
-      <p className="font-bold">Arrivals by hour, today</p>
-      <p className="text-xs text-slate-500">Over the weeks, this becomes the “best time to come” chart customers see.</p>
-      <div className="mt-4 flex h-28 items-end gap-1.5">
-        {hours.map((h, i) => (
-          <div key={h} className="flex flex-1 flex-col items-center gap-1">
-            <motion.div
-              className={`w-full rounded-md ${h === nowH ? 'bg-brand-500' : 'bg-brand-200'}`}
-              initial={{ height: 0 }}
-              animate={{ height: `${(counts[i] / max) * 100}%` }}
-              style={{ minHeight: counts[i] ? 4 : 2 }}
-              title={`${counts[i]} arrivals`}
-            />
-            <span className="text-[10px] font-semibold text-slate-400">{h > 12 ? h - 12 : h}{h >= 12 ? 'p' : 'a'}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -129,7 +101,6 @@ export default function Counter() {
   const { user, isMember, loading: authLoading } = useAuth();
   const { place, loading, error } = usePlace(placeId);
   const { tickets } = useTickets(placeId);
-  const [counter, setCounter] = useState(1);
   const [busy, setBusy] = useState(false);
   const [opError, setOpError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -139,9 +110,24 @@ export default function Counter() {
     if (place && user && place.ownerUid === user.uid) rollDayIfNeeded(place).catch(() => {});
   }, [place?.id, place?.dayKey, user?.uid]);
 
+
+  // Keyboard: press 1–9 to call the next person at that counter.
+  const keyRef = useRef({ place, tickets, uid: user?.uid });
+  keyRef.current = { place, tickets, uid: user?.uid };
   useEffect(() => {
-    if (place && counter > place.counters) setCounter(place.counters);
-  }, [place?.counters]);
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return;
+      const d = Number(e.key);
+      const { place: p, tickets: ts, uid } = keyRef.current;
+      if (!p || !d || d > p.counters || p.ownerUid !== uid) return;
+      e.preventDefault();
+      const any = ts.some((t) => t.status === 'waiting');
+      (any ? callNext(p, ts, d) : finishCounter(p, ts, d)).catch(() => {});
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const waiting = useMemo(() => tickets.filter((t) => t.status === 'waiting'), [tickets]);
   const calledByCounter = useMemo(() => {
@@ -157,7 +143,6 @@ export default function Counter() {
   if (place.ownerUid !== user!.uid) return <Empty title="This isn't your queue">Only the owner can run its counter.</Empty>;
 
   const joinUrl = `${window.location.origin}/q/${place.id}`;
-  const current = calledByCounter.get(counter) ?? null;
   const today = todayKey();
   const done = tickets.filter((t) => t.status === 'done').length;
   const run = async (fn: () => Promise<unknown>) => {
@@ -232,77 +217,123 @@ export default function Counter() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.25fr_1fr]">
-        {/* Counter console */}
+        {/* Live board */}
         <div className="space-y-6">
-          <div className="card overflow-hidden">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3">
-              <div className="flex items-center gap-1 overflow-x-auto">
-                {Array.from({ length: place.counters }, (_, i) => i + 1).map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setCounter(c)}
-                    className={`relative rounded-lg px-3 py-1.5 text-sm font-bold whitespace-nowrap ${counter === c ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}
-                  >
-                    Counter {c}
-                    {calledByCounter.has(c) && <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-brand-500" />}
+          <LayoutGroup>
+            <div className="relative overflow-hidden rounded-3xl bg-slate-950 p-5 text-white shadow-lift sm:p-6">
+              <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-brand-600/30 blur-3xl" />
+              <div className="relative flex items-center justify-between gap-3">
+                <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-slate-400">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-70" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-400" />
+                  </span>
+                  Live board
+                </p>
+                <div className="flex items-center gap-1 rounded-xl bg-white/5 p-1 ring-1 ring-white/10">
+                  <button className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10" title="Remove a counter" onClick={() => run(() => updatePlace(place.id, { counters: Math.max(1, place.counters - 1) }))}>
+                    <Minus size={14} />
                   </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-1">
-                <button className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" title="Remove a counter" onClick={() => run(() => updatePlace(place.id, { counters: Math.max(1, place.counters - 1) }))}>
-                  <Minus size={16} />
-                </button>
-                <button className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" title="Add a counter" onClick={() => run(() => updatePlace(place.id, { counters: Math.min(30, place.counters + 1) }))}>
-                  <Plus size={16} />
-                </button>
-              </div>
-            </div>
-
-            <div className="grid gap-6 p-6 sm:grid-cols-[1fr_auto] sm:items-center">
-              <div>
-                <p className="text-sm font-semibold text-slate-500">Now serving at counter {counter}</p>
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={current?.id ?? 'none'}
-                    initial={{ opacity: 0, y: 14, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -14 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-                  >
-                    {current ? (
-                      <div className="mt-1">
-                        <SplitFlap value={current.number} tone="light" className="mt-1 text-6xl text-slate-900" />
-                        <p className="mt-2 font-semibold text-slate-700">
-                          {current.name}
-                          {current.partySize > 1 && <span className="ml-2 chip bg-sun-50 text-sun-600 ring-sun-100"><Users size={12} /> {current.partySize}</span>}
-                        </p>
-                        <p className="text-xs text-slate-400">Called {current.calledAt ? timeAgo(current.calledAt) : ''}</p>
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-2xl font-bold text-slate-300">Nobody yet</p>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-              <div className="flex flex-col gap-2">
-                <button
-                  className="btn-primary h-20 min-w-[200px] text-xl"
-                  disabled={busy || (!waiting.length && !current)}
-                  onClick={() => run(() => (waiting.length ? callNext(place, tickets, counter) : finishCounter(place, tickets, counter)))}
-                >
-                  <BellRing size={22} /> {waiting.length ? 'Call next' : 'Finish'}
-                </button>
-                <div className="grid grid-cols-2 gap-2">
-                  <button className="btn-ghost" disabled={busy || !current} onClick={() => current && run(() => recall(place.id, current))}>
-                    <Megaphone size={16} /> Recall
-                  </button>
-                  <button className="btn-ghost" disabled={busy || !current} onClick={() => run(() => finishCounter(place, tickets, counter))}>
-                    <Check size={16} /> Done
+                  <span className="px-1 text-xs font-bold text-slate-300">{place.counters} counter{place.counters > 1 ? 's' : ''}</span>
+                  <button className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10" title="Add a counter" onClick={() => run(() => updatePlace(place.id, { counters: Math.min(30, place.counters + 1) }))}>
+                    <Plus size={14} />
                   </button>
                 </div>
               </div>
+
+              {/* The line */}
+              <div className="relative mt-5">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">In line · {waiting.length}</p>
+                <div className="mt-2 flex min-h-[3.5rem] flex-wrap items-center gap-2">
+                  {waiting.slice(0, 10).map((t, i) => (
+                    <motion.div
+                      key={t.id}
+                      layoutId={`tok-${t.id}`}
+                      transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+                      className={`flex h-12 min-w-[3.25rem] flex-col items-center justify-center rounded-2xl px-2 ${
+                        i === 0 ? 'bg-brand-500 text-white shadow-[0_8px_24px_-8px_rgba(14,165,143,.9)]' : 'bg-white/10 text-white'
+                      }`}
+                      title={t.name}
+                    >
+                      <span className="text-lg font-extrabold leading-none">{t.number}</span>
+                      <span className="mt-0.5 max-w-[3rem] truncate text-[9px] font-semibold text-white/60">{t.name.split(' ')[0]}</span>
+                    </motion.div>
+                  ))}
+                  {waiting.length > 10 && <span className="text-sm font-bold text-slate-400">+{waiting.length - 10}</span>}
+                  {!waiting.length && <span className="text-sm text-slate-500">Nobody waiting. Share the QR code.</span>}
+                </div>
+              </div>
+
+              {/* Counters */}
+              <div className={`relative mt-5 grid gap-3 ${place.counters > 1 ? 'sm:grid-cols-2' : ''}`}>
+                {Array.from({ length: place.counters }, (_, i) => i + 1).map((c) => {
+                  const cur = calledByCounter.get(c) ?? null;
+                  return (
+                    <div key={c} className="rounded-2xl bg-white/[0.06] p-4 ring-1 ring-white/10">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-bold text-slate-300">Counter {c}</p>
+                        {c <= 9 && <span className="hidden rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 lg:inline" title={`Press ${c} on the keyboard to call the next person here`}>key {c}</span>}
+                      </div>
+                      <div className="mt-3 flex min-h-[5.5rem] items-center gap-3">
+                        <AnimatePresence mode="popLayout">
+                          {cur ? (
+                            <motion.div
+                              key={cur.id}
+                              layoutId={`tok-${cur.id}`}
+                              exit={{ opacity: 0, x: 40, scale: 0.6, transition: { duration: 0.35 } }}
+                              transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+                              className="flex h-20 min-w-[5.5rem] flex-col items-center justify-center rounded-2xl bg-sun-400 px-3 text-slate-900 shadow-[0_10px_30px_-10px_rgba(251,171,48,.9)]"
+                            >
+                              <span className="text-4xl font-extrabold leading-none">{cur.number}</span>
+                            </motion.div>
+                          ) : (
+                            <motion.div
+                              key={`free-${c}`}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              className="grid h-20 min-w-[5.5rem] place-items-center rounded-2xl border-2 border-dashed border-white/15 text-sm font-bold text-slate-500"
+                            >
+                              Free
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        <div className="min-w-0">
+                          {cur ? (
+                            <>
+                              <p className="truncate font-bold">
+                                {cur.name}
+                                {cur.partySize > 1 && <span className="ml-1.5 text-xs font-bold text-sun-300">+{cur.partySize - 1}</span>}
+                              </p>
+                              <p className="text-xs text-slate-400">Called {cur.calledAt ? timeAgo(cur.calledAt) : ''}</p>
+                            </>
+                          ) : (
+                            <p className="text-sm text-slate-500">Ready for the next person</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-[1fr_auto_auto] gap-2">
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          className="btn bg-brand-500 py-3 text-base text-white shadow-[0_10px_24px_-10px_rgba(14,165,143,.9)] hover:bg-brand-400"
+                          disabled={busy || (!waiting.length && !cur)}
+                          onClick={() => run(() => (waiting.length ? callNext(place, tickets, c) : finishCounter(place, tickets, c)))}
+                        >
+                          <BellRing size={18} /> {waiting.length ? 'Call next' : 'Finish'}
+                        </motion.button>
+                        <button className="btn bg-white/10 px-3 text-white hover:bg-white/15" title="Recall" disabled={busy || !cur} onClick={() => cur && run(() => recall(place.id, cur))}>
+                          <Megaphone size={16} />
+                        </button>
+                        <button className="btn bg-white/10 px-3 text-white hover:bg-white/15" title="Done" disabled={busy || !cur} onClick={() => run(() => finishCounter(place, tickets, c))}>
+                          <Check size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          </LayoutGroup>
 
           {/* Waiting list */}
           <div className="card">
@@ -355,7 +386,7 @@ export default function Counter() {
         {/* Side column */}
         <div className="space-y-6">
           <WalkInForm place={place} uid={user!.uid} />
-          <HoursChart tickets={tickets} />
+          <BestTime place={place} />
           <div className="card p-5">
             <p className="font-bold">Customers join here</p>
             <a href={joinUrl} target="_blank" rel="noreferrer" className="mt-2 flex items-center gap-2 break-all text-sm font-semibold text-brand-700 hover:underline">

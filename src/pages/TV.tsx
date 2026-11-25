@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { Maximize, Volume2 } from 'lucide-react';
 import Logo from '../components/Logo';
@@ -49,8 +49,9 @@ export default function TV() {
       if (t.status !== 'called' || !t.announceAt) continue;
       if (seen.current.get(t.id) === t.announceAt) continue;
       seen.current.set(t.id, t.announceAt);
-      setFlash(t);
-      setTimeout(() => setFlash((f) => (f?.id === t.id ? null : f)), 6000);
+      // Let the token fly from "Up next" to its counter first, then the big moment.
+      setTimeout(() => setFlash(t), 900);
+      setTimeout(() => setFlash((f) => (f?.id === t.id ? null : f)), 900 + 4200);
       if (started) {
         chime();
         setTimeout(() => announce(t.number, t.counter ?? 1, place.languages?.length ? place.languages : ['en']), 700);
@@ -60,6 +61,7 @@ export default function TV() {
 
   if (loading) return <Spinner />;
   if (!place) return <Empty title="Queue not found" />;
+  const numSize = place.counters <= 2 ? 'text-[9rem]' : place.counters <= 4 ? 'text-[6rem]' : 'text-[4.5rem]';
   const joinUrl = `${window.location.origin}/q/${place.id}`;
 
   return (
@@ -84,56 +86,89 @@ export default function TV() {
         </div>
       </header>
 
-      <div className="relative grid gap-8 px-10 pb-24 lg:grid-cols-[1.6fr_1fr]">
-        {/* Serving grid */}
-        <section className="grid content-start gap-5 sm:grid-cols-2">
-          {serving.length === 0 && (
-            <div className="col-span-full grid h-72 place-items-center rounded-3xl bg-white/5 ring-1 ring-white/10">
-              <p className="text-3xl font-bold text-slate-500">Waiting for the first call…</p>
-            </div>
-          )}
-          <AnimatePresence>
-            {serving.map((t) => (
-              <motion.div
-                key={`${t.counter}-${t.id}`}
-                layout
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className={`rounded-3xl p-8 ring-1 ${flash?.id === t.id ? 'bg-brand-600 ring-brand-300' : 'bg-white/5 ring-white/10'}`}
+      <LayoutGroup>
+      <div className="relative grid gap-8 px-10 pb-24 lg:h-[calc(100dvh-8.75rem)] lg:grid-cols-[1.6fr_1fr]">
+        <div className="flex min-h-0 flex-col gap-6">
+        {/* Counters */}
+        <section className={`grid min-h-0 flex-1 auto-rows-fr gap-5 ${place.counters > 1 ? 'sm:grid-cols-2' : ''}`}>
+          {Array.from({ length: place.counters }, (_, i) => i + 1).map((c) => {
+            const t = serving.find((x) => x.counter === c);
+            const hot = !!t && flash?.id === t.id;
+            return (
+              <div
+                key={c}
+                className={`relative flex min-h-[15rem] flex-col overflow-hidden rounded-3xl p-7 ring-1 transition-colors duration-500 ${hot ? 'bg-brand-600/90 ring-brand-300' : 'bg-white/5 ring-white/10'}`}
               >
-                <p className="text-xl font-semibold text-slate-300">Counter {t.counter}</p>
-                <SplitFlap value={t.number} tone="dark" className="mt-3 text-[5.5rem]" />
-                <p className="mt-2 truncate text-2xl font-semibold text-slate-200">{t.name}</p>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+                <div className="flex items-center justify-between">
+                  <p className="text-2xl font-bold text-slate-300">Counter {c}</p>
+                  <span className={`h-3 w-3 rounded-full ${t ? 'bg-brand-400 shadow-[0_0_16px_rgba(45,212,191,.9)]' : 'bg-slate-600'}`} />
+                </div>
+                <div className="flex flex-1 items-center justify-center py-3">
+                  <AnimatePresence mode="popLayout">
+                    {t ? (
+                      <motion.div
+                        key={t.id}
+                        layoutId={`tv-${t.id}`}
+                        exit={{ opacity: 0, y: -30, transition: { duration: 0.4 } }}
+                        transition={{ type: 'spring', stiffness: 200, damping: 24 }}
+                        className="rounded-[2rem] bg-white px-8 py-3 text-slate-900 shadow-[0_30px_80px_-30px_rgba(45,212,191,.7)]"
+                      >
+                        <span className={`${numSize} block font-extrabold leading-none tabular-nums`}>{t.number}</span>
+                      </motion.div>
+                    ) : (
+                      <motion.p key={`free-${c}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-3xl font-bold text-slate-600">
+                        Open
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <p className="h-8 truncate text-center text-2xl font-semibold text-slate-200">{t?.name ?? ''}</p>
+              </div>
+            );
+          })}
         </section>
 
+        {/* Today strip */}
+        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[
+            { k: 'Waiting now', v: String(tickets.filter((x) => x.status === 'waiting').length) },
+            { k: 'Served today', v: String(place.servedToday ?? 0) },
+            { k: 'Avg. service', v: `${Math.max(1, Math.round((place.avgServiceSec || 180) / 60))} min` },
+            { k: 'On time', v: place.speed && place.speed.n >= 5 ? `${Math.round((place.speed.onTime / place.speed.n) * 100)}%` : 'New' },
+          ].map((x) => (
+            <div key={x.k} className="rounded-2xl bg-white/5 px-5 py-4 ring-1 ring-white/10">
+              <p className="text-sm font-semibold uppercase tracking-widest text-slate-500">{x.k}</p>
+              <p className="mt-1 text-4xl font-extrabold tabular-nums">{x.v}</p>
+            </div>
+          ))}
+        </section>
+        </div>
+
         {/* Side: up next + join */}
-        <aside className="space-y-6">
-          <div className="rounded-3xl bg-white/5 p-6 ring-1 ring-white/10">
+        <aside className="flex min-h-0 flex-col gap-6">
+          <div className="flex-1 rounded-3xl bg-white/5 p-6 ring-1 ring-white/10">
             <div className="flex items-baseline justify-between">
-              <p className="text-xl font-bold">Up next</p>
+              <p className="text-2xl font-bold">Up next</p>
               <p className="text-slate-400">Wait ~{formatMinutes(placeWaitMinutes(place))}</p>
             </div>
             <ul className="mt-4 grid grid-cols-4 gap-3">
-              <AnimatePresence>
-                {upNext.map((t) => (
-                  <motion.li
-                    key={t.id}
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="rounded-2xl bg-white/10 py-3 text-center text-3xl font-extrabold tabular-nums"
-                  >
-                    {t.number}
-                  </motion.li>
-                ))}
-              </AnimatePresence>
+              {upNext.map((t, i) => (
+                <motion.li
+                  key={t.id}
+                  layoutId={`tv-${t.id}`}
+                  transition={{ type: 'spring', stiffness: 200, damping: 24 }}
+                  className={`rounded-2xl py-4 text-center text-4xl font-extrabold tabular-nums ${i === 0 ? 'bg-brand-500 text-white shadow-[0_12px_40px_-12px_rgba(45,212,191,.9)]' : 'bg-white/10'}`}
+                >
+                  {t.number}
+                </motion.li>
+              ))}
             </ul>
             {upNext.length === 0 && <p className="mt-4 text-slate-500">Nobody waiting. Walk right in!</p>}
+            {upNext[0] && (
+              <p className="mt-6 text-lg text-slate-400">
+                Token <span className="font-extrabold text-white">{upNext[0].number}</span>, please get ready.
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-5 rounded-3xl bg-white p-5 text-slate-900">
             <QRCodeSVG value={joinUrl} size={132} />
@@ -145,6 +180,7 @@ export default function TV() {
           </div>
         </aside>
       </div>
+      </LayoutGroup>
 
       {/* Ticker */}
       <div className="absolute inset-x-0 bottom-0 overflow-hidden border-t border-white/10 bg-white/[0.04] py-3 backdrop-blur">
@@ -170,13 +206,29 @@ export default function TV() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-brand-700/90 backdrop-blur"
+            exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            className="pointer-events-none absolute inset-0 z-20 grid place-items-center overflow-hidden bg-slate-950/80 backdrop-blur-md"
           >
-            <motion.div initial={{ scale: 0.7 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 180, damping: 14 }} className="text-center">
-              <p className="text-3xl font-semibold text-brand-100">Token</p>
-              <p className="text-[14rem] font-extrabold leading-none tabular-nums">{flash.number}</p>
-              <p className="text-5xl font-bold">→ Counter {flash.counter}</p>
+            {[0, 1, 2].map((k) => (
+              <motion.span
+                key={k}
+                className="absolute h-[30rem] w-[30rem] rounded-full border-4 border-brand-400/60"
+                initial={{ scale: 0.3, opacity: 0.9 }}
+                animate={{ scale: 2.2, opacity: 0 }}
+                transition={{ duration: 1.8, delay: k * 0.35, ease: 'easeOut' }}
+              />
+            ))}
+            <motion.div initial={{ scale: 0.6, y: 40 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 170, damping: 14 }} className="relative text-center">
+              <p className="text-3xl font-bold uppercase tracking-[0.3em] text-brand-300">Now calling</p>
+              <div className="mx-auto mt-6 w-fit rounded-[2.5rem] bg-white px-12 py-4 text-slate-900 shadow-[0_40px_120px_-20px_rgba(14,165,143,.8)]">
+                <SplitFlap value={flash.number} tone="light" className="text-[11rem]" />
+              </div>
+              <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-8 text-6xl font-extrabold text-white">
+                Counter {flash.counter}
+              </motion.p>
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-3 text-3xl font-semibold text-slate-300">
+                {flash.name}
+              </motion.p>
             </motion.div>
           </motion.div>
         )}
