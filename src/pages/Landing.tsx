@@ -21,6 +21,7 @@ import ScrollStory from '../components/ScrollStory';
 import SpotCard from '../components/SpotCard';
 import { usePlaces } from '../lib/hooks';
 import { todayKey } from '../lib/time';
+import { useTitle } from '../lib/useTitle';
 
 const fade = {
   hidden: { opacity: 0, y: 24, filter: 'blur(6px)' },
@@ -38,6 +39,7 @@ const HEADLINE = ['No', 'one', 'should', 'ever'];
 const PLACES = ['🏦 Banks', '💈 Barbers', '💊 Pharmacies', '🏛️ Passport offices', '🎓 School PTMs', '🩺 Clinics', '🛠️ Service centres', '☕ Cafés', '🎟️ Fest counters', '🛍️ Shops'];
 
 export default function Landing() {
+  useTitle('How Turnly works');
   const { places } = usePlaces();
   const today = todayKey();
   const waitingNow = places.reduce((s, p) => s + (p.dayKey === today ? p.waiting : 0), 0);

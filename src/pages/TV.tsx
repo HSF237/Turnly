@@ -11,11 +11,13 @@ import { usePlace, useTick, useTickets } from '../lib/hooks';
 import { formatMinutes, placeWaitMinutes } from '../lib/predict';
 import { announce, chime } from '../lib/speech';
 import type { Ticket } from '../lib/types';
+import { useTitle } from '../lib/useTitle';
 
 export default function TV() {
   const { placeId } = useParams();
   const { place, loading } = usePlace(placeId);
   const { tickets } = useTickets(placeId);
+  useTitle(place ? `TV · ${place.name}` : null);
   const [started, setStarted] = useState(false);
   const [flash, setFlash] = useState<Ticket | null>(null);
   const seen = useRef<Map<string, number> | null>(null);
@@ -87,7 +89,7 @@ export default function TV() {
       </header>
 
       <LayoutGroup>
-      <div className="relative grid gap-8 px-10 pb-24 lg:h-[calc(100dvh-8.75rem)] lg:grid-cols-[1.6fr_1fr]">
+      <div className="relative grid gap-8 px-10 pb-24 lg:h-[calc(100dvh-14.75rem)] lg:grid-cols-[1.6fr_1fr]">
         <div className="flex min-h-0 flex-col gap-6">
         {/* Counters */}
         <section className={`grid min-h-0 flex-1 auto-rows-fr gap-5 ${place.counters > 1 ? 'sm:grid-cols-2' : ''}`}>

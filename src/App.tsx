@@ -1,11 +1,14 @@
 import { Route, Routes, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { useEffect } from 'react';
 import Navbar from './components/Navbar';
 import TabBar from './components/TabBar';
 import Splash from './components/Splash';
 import Onboarding from './components/Onboarding';
 import ScrollProgress from './components/ScrollProgress';
+import CommandPalette from './components/CommandPalette';
+import Sidebar from './components/Sidebar';
+import OfflineBanner from './components/OfflineBanner';
 import Landing from './pages/Landing';
 import Home from './pages/Home';
 import Explore from './pages/Explore';
@@ -37,10 +40,15 @@ export default function App() {
   }, [location.pathname]);
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="min-h-dvh">
       <Splash />
       <Onboarding />
+      <OfflineBanner />
+      {!bare && <CommandPalette />}
       {!bare && <ScrollProgress />}
+      {!bare && <Sidebar />}
+      <div className={bare ? '' : 'xl:pl-[17rem]'}>
       {!bare && <Navbar />}
       <AnimatePresence mode="wait">
         <motion.main
@@ -74,7 +82,9 @@ export default function App() {
           </Routes>
         </motion.main>
       </AnimatePresence>
+      </div>
       {!bare && !focused && <TabBar />}
     </div>
+    </MotionConfig>
   );
 }

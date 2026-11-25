@@ -8,10 +8,12 @@ import { ErrorNote, Spinner } from '../components/States';
 import { useAuth, useGeolocation } from '../lib/hooks';
 import { createSchoolEvent, parseTeacherList, type TeacherInput } from '../lib/school';
 import { todayKey } from '../lib/time';
+import { useTitle } from '../lib/useTitle';
 
 const blank = (): TeacherInput & { key: number } => ({ key: Math.random(), name: '', subject: '', room: '' });
 
 export default function SchoolNew() {
+  useTitle('New school event');
   const { user, isMember, loading } = useAuth();
   const navigate = useNavigate();
   const geo = useGeolocation();

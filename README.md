@@ -39,6 +39,12 @@ Entry for the 6th International Digital Fest 2027 (Web & Mobile Applications), A
 - **Speed badges**: each join stores the wait Turnly promised; on call we check it, and places that keep 80%+ of promises (5+ calls) earn "On time" (`src/lib/speed.ts`)
 - "Reported by people nearby" on the home screen
 
+## Round 7: sample city, desktop app, polish
+- **Sample city**: a simulated, always-busy set of places in Kuala Lumpur and Kannur (`src/lib/sim.ts`), with moving queues, crowd reports and a live activity feed. You can join a sample queue (it speeds up so your turn comes in minutes), or run a sample branch from the staff console. Nothing fake is written to Firestore.
+- **Desktop app layout** (1280px and wider): a dark sidebar with navigation, your live tokens and the city pulse. Two-column join and token pages, a live shortest-waits panel in the home hero, suggestions on My tokens.
+- **Quick search** (⌘K or /), an offline notice, page titles, decluttered map pins (overlapping labels shrink to dots), and a one-tap "sample day" in the planner.
+- See `DEVELOPER_GUIDE.md` for how everything fits together.
+
 ## Coming next
 
 Community mode (crowd-reported waits), City pulse on live data, Best time to come from history, Speed badges, Wait somewhere better.

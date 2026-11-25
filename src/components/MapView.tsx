@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { distanceM } from '../lib/time';
 import maplibregl, { type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { CommunityPlace, Place } from '../lib/types';
@@ -49,7 +50,16 @@ interface Props {
   onSelectCommunity?: (c: CommunityPlace) => void;
   /** Show the live "city pulse" heat layer. */
   heat?: boolean;
+  /** Frame only the points within ~40 km of here (the chosen city). Changing it flies there. */
+  frameNear?: { lat: number; lng: number } | null;
   className?: string;
+}
+
+function dotHtml(color: string, emoji: string, dashed = false) {
+  return `<div class="tm-dot" style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 4px 8px rgba(15,23,42,.2))">
+      <span style="display:grid;place-items:center;width:28px;height:28px;border-radius:999px;background:white;border:2.5px ${dashed ? 'dashed' : 'solid'} ${color};font-size:13px">${emoji}</span>
+      <div style="width:7px;height:7px;margin-top:2px;border-radius:999px;background:${color};border:2px solid white"></div>
+    </div>`;
 }
 
 function communityEl(c: CommunityPlace, selected: boolean, drop = false, delay = 0) {
@@ -57,18 +67,21 @@ function communityEl(c: CommunityPlace, selected: boolean, drop = false, delay =
   const lvl = waitLevel(est ? est.minutes : null);
   const color = est ? LEVEL_STYLE[lvl].hex : '#94a3b8';
   const label = est ? `~${formatMinutes(est.minutes)}` : 'Report';
+  const emoji = CATEGORY_META[c.category]?.emoji ?? '📍';
   const el = document.createElement('div');
   el.className = drop ? 'turnly-marker drop' : 'turnly-marker';
+  el.dataset.w = String(label.length * 7 + 64);
+  el.dataset.pr = String(selected ? -1e9 : 5000 + (est ? est.minutes : 999));
   el.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 10px rgba(15,23,42,.18));transform:scale(${selected ? 1.12 : 1});transition:transform .2s;animation-delay:${delay}ms">
+    <div class="tm-full" style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 10px rgba(15,23,42,.18));transform:scale(${selected ? 1.12 : 1});transition:transform .2s;animation-delay:${delay}ms">
       <div style="display:flex;align-items:center;gap:6px;background:white;border-radius:999px;padding:5px 10px 5px 6px;border:2px dashed ${color};font:600 12px 'Plus Jakarta Sans',system-ui;color:#0f172a;white-space:nowrap">
-        <span style="display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:${color}22;font-size:13px">${CATEGORY_META[c.category]?.emoji ?? '📍'}</span>
+        <span style="display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:${color}22;font-size:13px">${emoji}</span>
         ${label}
         <span style="font-size:10px;color:#64748b">👥</span>
       </div>
       <div style="width:2px;height:8px;background:${color}"></div>
       <div style="width:8px;height:8px;border-radius:999px;background:${color};border:2px solid white"></div>
-    </div>`;
+    </div>${dotHtml(color, emoji, true)}`;
   return el;
 }
 
@@ -76,22 +89,26 @@ function markerEl(p: Place, selected: boolean, stop?: number, drop = false, dela
   const min = placeWaitMinutes(p);
   const lvl = waitLevel(min);
   const color = LEVEL_STYLE[lvl].hex;
+  const label = formatMinutes(min);
+  const emoji = CATEGORY_META[p.category]?.emoji ?? '📍';
   const el = document.createElement('div');
   el.className = drop ? 'turnly-marker drop' : 'turnly-marker';
   el.style.setProperty('--d', `${delay}ms`);
+  el.dataset.w = String(label.length * 7 + 50);
+  el.dataset.pr = String(selected ? -1e9 : stop ? -1e6 + stop : min ?? 4000);
   el.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 10px rgba(15,23,42,.18));transform:scale(${selected ? 1.12 : 1});transition:transform .2s;animation-delay:${delay}ms">
+    <div class="tm-full" style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 10px rgba(15,23,42,.18));transform:scale(${selected ? 1.12 : 1});transition:transform .2s;animation-delay:${delay}ms">
       <div style="display:flex;align-items:center;gap:6px;background:white;border-radius:999px;padding:5px 10px 5px 6px;border:2px solid ${color};font:600 12px 'Plus Jakarta Sans',system-ui;color:#0f172a;white-space:nowrap">
         ${
           stop
             ? `<span style="display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:#0f172a;color:white;font-size:12px;font-weight:800">${stop}</span>`
-            : `<span style="display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:${color}22;font-size:13px">${CATEGORY_META[p.category]?.emoji ?? '📍'}</span>`
+            : `<span style="display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:${color}22;font-size:13px">${emoji}</span>`
         }
-        ${formatMinutes(min)}
+        ${label}
       </div>
       <div style="width:2px;height:8px;background:${color}"></div>
       <div style="width:8px;height:8px;border-radius:999px;background:${color};border:2px solid white"></div>
-    </div>`;
+    </div>${dotHtml(color, emoji)}`;
   return el;
 }
 
@@ -109,6 +126,7 @@ export default function MapView({
   community = [],
   onSelectCommunity,
   heat = false,
+  frameNear = null,
   className = '',
 }: Props) {
   const box = useRef<HTMLDivElement>(null);
@@ -140,23 +158,71 @@ export default function MapView({
   }, []);
 
   // First time places arrive (and no explicit centre): frame them all.
-  const framed = useRef(false);
+  // With frameNear, frame just that city, and fly again whenever the city changes.
+  const framed = useRef<string | null>(null);
   useEffect(() => {
     const m = map.current;
-    const pts = [...places, ...community];
-    if (!m || framed.current || center || picked || !pts.length || route) return;
-    framed.current = true;
+    const near = frameNear ? `${frameNear.lat.toFixed(3)},${frameNear.lng.toFixed(3)}` : 'all';
+    let pts: { lat: number; lng: number }[] = [...places, ...community];
+    if (frameNear) pts = pts.filter((p) => distanceM(frameNear, p) < 40000);
+    if (!m || framed.current === near || center || picked || route) return;
+    if (!pts.length) {
+      if (frameNear) {
+        const firstEmpty = framed.current === null;
+        framed.current = near;
+        m.flyTo({ center: [frameNear.lng, frameNear.lat], zoom: 13, duration: firstEmpty ? 0 : 1200 });
+      }
+      return;
+    }
+    const first = framed.current === null;
+    framed.current = near;
     if (pts.length === 1) m.jumpTo({ center: [pts[0].lng, pts[0].lat], zoom: 14 });
     else {
       const b = new maplibregl.LngLatBounds();
       pts.forEach((p) => b.extend([p.lng, p.lat]));
-      m.fitBounds(b, { padding: 70, maxZoom: 15, duration: 0 });
+      m.fitBounds(b, { padding: 70, maxZoom: 15, duration: first ? 0 : 1400 });
     }
-  }, [places.length, community.length]);
+  }, [places.length, community.length, frameNear?.lat, frameNear?.lng]);
 
   useEffect(() => {
     if (center && map.current) map.current.flyTo({ center: [center.lng, center.lat], zoom: Math.max(map.current.getZoom(), 14), speed: 1.4 });
   }, [center?.lat, center?.lng]);
+
+  // Declutter: labels that would overlap a more useful one shrink to a small dot.
+  // Priority: the selected place, route stops, then the shortest waits.
+  const declutter = useRef(() => {});
+  declutter.current = () => {
+    const m = map.current;
+    if (!m) return;
+    const placed: { x1: number; x2: number; y1: number; y2: number }[] = [];
+    const items = markers.current.map((mk) => ({ mk, el: mk.getElement() })).sort((a, b) => Number(a.el.dataset.pr) - Number(b.el.dataset.pr));
+    for (const { mk, el } of items) {
+      const pt = m.project(mk.getLngLat());
+      const w = Number(el.dataset.w) || 90;
+      const box = { x1: pt.x - w / 2 - 3, x2: pt.x + w / 2 + 3, y1: pt.y - 50, y2: pt.y + 2 };
+      const hit = placed.some((b) => !(box.x2 < b.x1 || box.x1 > b.x2 || box.y2 < b.y1 || box.y1 > b.y2));
+      el.classList.toggle('compact', hit);
+      if (!hit) placed.push(box);
+    }
+  };
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    let raf = 0;
+    const run = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => declutter.current());
+    };
+    m.on('zoom', run);
+    m.on('moveend', run);
+    m.on('resize', run);
+    return () => {
+      cancelAnimationFrame(raf);
+      m.off('zoom', run);
+      m.off('moveend', run);
+      m.off('resize', run);
+    };
+  }, []);
 
   useEffect(() => {
     const m = map.current;
@@ -183,6 +249,7 @@ export default function MapView({
       });
       markers.current.push(new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([c.lng, c.lat]).addTo(m));
     }
+    declutter.current();
   }, [places, community, selectedId, onSelect, onSelectCommunity, order]);
 
   // Live "city pulse" heat layer: every place glows by its current wait.

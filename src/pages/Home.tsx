@@ -5,6 +5,10 @@ import { ArrowRight, ChevronLeft, ChevronRight, Crosshair, MapPinned, Search, Sp
 import CategoryArt from '../components/CategoryArt';
 import CityPulse from '../components/CityPulse';
 import Footer from '../components/Footer';
+import LiveFeed from '../components/LiveFeed';
+import CityGlance from '../components/CityGlance';
+import CityPicker from '../components/CityPicker';
+import { sampleBranchId } from '../lib/sim';
 import InstallCard from '../components/InstallCard';
 import PlaceCard from '../components/PlaceCard';
 import CommunityCard from '../components/CommunityCard';
@@ -12,10 +16,11 @@ import SplitFlap from '../components/SplitFlap';
 import TokenCard from '../components/TokenCard';
 import { Skeleton } from '../components/States';
 import { useAuth, useCommunity, useGeolocation, usePlaces } from '../lib/hooks';
-import { placeWaitMinutes } from '../lib/predict';
+import { formatMinutes, LEVEL_STYLE, placeWaitMinutes, waitLevel } from '../lib/predict';
 import { allRememberedTickets } from '../lib/queue';
 import { distanceM, todayKey } from '../lib/time';
-import { CATEGORY_META, type Category } from '../lib/types';
+import { CATEGORY_META, type Category, type Place } from '../lib/types';
+import { useTitle } from '../lib/useTitle';
 
 const CATS: Category[] = ['bank', 'clinic', 'pharmacy', 'government', 'barber', 'shop', 'restaurant', 'service', 'school'];
 const SHORT: Partial<Record<Category, string>> = {
@@ -79,7 +84,61 @@ function Carousel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Laptop hero, right side: the shortest waits right now, re-ordering live. */
+function HeroLive({ items }: { items: { p: Place; min: number }[] }) {
+  if (!items.length) return null;
+  const today = todayKey();
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24, rotate: 1.5 }}
+      animate={{ opacity: 1, y: 0, rotate: 0 }}
+      transition={{ delay: 0.25, duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
+      className="relative hidden rounded-[2rem] bg-white/[0.06] p-5 ring-1 ring-white/10 backdrop-blur-xl lg:block"
+    >
+      <div className="flex items-center justify-between px-1">
+        <p className="text-lg font-extrabold">Shortest waits right now</p>
+        <span className="flex items-center gap-1.5 text-xs font-bold text-brand-300">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-70" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-400" />
+          </span>
+          Live
+        </span>
+      </div>
+      <ul className="mt-4 space-y-2.5">
+        <AnimatePresence initial={false}>
+          {items.map(({ p, min }) => {
+            const hex = LEVEL_STYLE[waitLevel(min)].hex;
+            return (
+              <motion.li key={p.id} layout initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
+                <Link to={`/q/${p.id}`} className="group flex items-center gap-3 rounded-2xl bg-white/[0.05] p-2.5 ring-1 ring-white/10 transition hover:bg-white/10">
+                  <span className="relative h-14 w-20 shrink-0 overflow-hidden rounded-xl">
+                    <CategoryArt category={p.category} className="h-full w-full transition duration-500 group-hover:scale-110" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-bold">{p.name}</span>
+                    <span className="block truncate text-xs text-slate-400">
+                      {CATEGORY_META[p.category].label} · {p.dayKey === today ? p.waiting : 0} in line
+                    </span>
+                  </span>
+                  <span className="shrink-0 rounded-full px-3 py-1.5 text-sm font-extrabold" style={{ background: `${hex}2b`, color: hex }}>
+                    {formatMinutes(min)}
+                  </span>
+                </Link>
+              </motion.li>
+            );
+          })}
+        </AnimatePresence>
+      </ul>
+      <Link to="/explore" className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-white py-3 text-sm font-bold text-slate-900 transition hover:bg-brand-50">
+        <MapPinned size={16} /> Open the live map
+      </Link>
+    </motion.div>
+  );
+}
+
 export default function Home() {
+  useTitle('');
   const { user, isMember } = useAuth();
   const { places, loading } = usePlaces();
   const { places: community } = useCommunity();
@@ -115,7 +174,7 @@ export default function Home() {
         {FLOATERS.map((f, i) => (
           <motion.span
             key={i}
-            className="pointer-events-none absolute hidden rounded-xl bg-white/[0.07] px-2.5 py-1.5 text-sm font-extrabold text-white/40 ring-1 ring-white/10 backdrop-blur sm:block"
+            className="pointer-events-none absolute hidden rounded-xl bg-white/[0.07] px-2.5 py-1.5 text-sm font-extrabold text-white/40 ring-1 ring-white/10 backdrop-blur sm:block lg:hidden"
             style={{ left: f.x, top: f.y }}
             animate={{ y: [0, -16, 0], rotate: [0, i % 2 ? 6 : -6, 0] }}
             transition={{ duration: f.d, repeat: Infinity, ease: 'easeInOut' }}
@@ -124,7 +183,8 @@ export default function Home() {
           </motion.span>
         ))}
 
-        <div className="container-x relative">
+        <div className="container-x relative lg:grid lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:items-center lg:gap-10">
+          <div>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-slate-300">
               {greet}
@@ -137,13 +197,16 @@ export default function Home() {
               </span>
               {open.length} {open.length === 1 ? 'place' : 'places'} live{waitingNow ? ` · ${waitingNow} waiting from anywhere` : ''}
             </span>
+            <span className="ml-auto">
+              <CityPicker compact dark />
+            </span>
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
-            className="mt-4 max-w-3xl text-[2.5rem] font-extrabold leading-[1.02] tracking-tight sm:text-6xl"
+            className="mt-4 max-w-3xl text-[2.5rem] font-extrabold leading-[1.02] tracking-tight sm:text-6xl xl:text-7xl"
           >
             Skip every line.
             <br />
@@ -195,6 +258,8 @@ export default function Home() {
               <ArrowRight size={18} className="sm:hidden" />
             </button>
           </motion.form>
+          </div>
+          <HeroLive items={list.filter((x) => x.min < 999).slice(0, 4)} />
         </div>
       </section>
 
@@ -286,6 +351,12 @@ export default function Home() {
             </Carousel>
           )}
         </section>
+
+        {/* ── Live activity ── */}
+        <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} className="grid gap-5 lg:grid-cols-[1.1fr_1fr]">
+          <LiveFeed />
+          <CityGlance places={open} />
+        </motion.section>
 
         {/* ── Community ── */}
         <section>
@@ -388,9 +459,14 @@ export default function Home() {
               </span>
               <h3 className="mt-3 text-3xl font-extrabold leading-tight sm:text-4xl">Run your queue from one phone.</h3>
               <p className="mt-2 max-w-md text-brand-100">A QR code for the door, a “Next” button for staff, and a TV board that calls tokens out loud. Free to start.</p>
-              <Link to="/business" className="btn mt-5 bg-white px-5 py-3 text-brand-800 hover:bg-brand-50">
-                Set up my queue <ArrowRight size={16} />
-              </Link>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link to="/business" className="btn bg-white px-5 py-3 text-brand-800 hover:bg-brand-50">
+                  Set up my queue <ArrowRight size={16} />
+                </Link>
+                <Link to={`/business/${sampleBranchId()}`} className="btn bg-white/10 px-5 py-3 text-white ring-1 ring-white/20 hover:bg-white/15">
+                  Try the staff console
+                </Link>
+              </div>
             </div>
             <div className="mx-auto w-full max-w-xs rounded-3xl bg-slate-950 p-6 text-center ring-1 ring-white/10">
               <p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Now serving</p>

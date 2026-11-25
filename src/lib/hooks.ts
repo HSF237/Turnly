@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { collection, doc, limit, onSnapshot, query, where } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { todayKey } from './time';
 import type { CommunityPlace, Place, SchoolEvent, Ticket } from './types';
 import { useMock } from './mock';
+import * as sim from './sim';
+
+/** Re-render whenever the sample city moves. */
+export function useSim() {
+  return useSyncExternalStore(sim.subscribe, sim.getVersion);
+}
 
 export function useAuth() {
   const mock = useMock();
@@ -24,11 +30,13 @@ export function useAuth() {
 
 export function usePlace(placeId: string | undefined) {
   const mock = useMock();
+  const isSample = sim.isSim(placeId);
+  useSim();
   const [place, setPlace] = useState<Place | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    if (mock || !placeId) return;
+    if (mock || !placeId || isSample) return;
     setLoading(true);
     return onSnapshot(
       doc(db, 'places', placeId),
@@ -43,17 +51,20 @@ export function usePlace(placeId: string | undefined) {
     );
   }, [placeId]);
   if (mock?.places) return { place: mock.places.find((p) => p.id === placeId) ?? null, loading: false, error: null };
+  if (isSample) return { place: sim.simPlace(placeId!), loading: false, error: null };
   return { place, loading, error };
 }
 
 /** Today's tickets for a place, sorted by token number. */
 export function useTickets(placeId: string | undefined) {
   const mock = useMock();
+  const isSample = sim.isSim(placeId);
+  useSim();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const day = todayKey();
   useEffect(() => {
-    if (mock || !placeId) return;
+    if (mock || !placeId || isSample) return;
     const q = query(collection(db, 'places', placeId, 'tickets'), where('dayKey', '==', day));
     return onSnapshot(
       q,
@@ -67,11 +78,13 @@ export function useTickets(placeId: string | undefined) {
     );
   }, [placeId, day]);
   if (mock?.tickets) return { tickets: [...(mock.tickets[placeId ?? ''] ?? [])].sort((a, b) => a.number - b.number), loading: false };
+  if (isSample) return { tickets: sim.simTickets(placeId!), loading: false };
   return { tickets, loading };
 }
 
 export function usePlaces() {
   const mock = useMock();
+  useSim();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,8 +103,10 @@ export function usePlaces() {
       },
     );
   }, []);
+  const samples = sim.simPlaces();
+  const all = useMemo(() => (samples.length ? [...places, ...samples] : places), [places, samples]);
   if (mock?.places) return { places: mock.places.filter((p) => !p.hidden), loading: false, error: null };
-  return { places, loading, error };
+  return { places: all, loading: loading && !samples.length, error };
 }
 
 export function useMyPlaces(uid: string | undefined) {
@@ -204,10 +219,13 @@ export function useMySchoolEvents(uid: string | undefined) {
 }
 
 /** Today's tickets for many places at once: placeId → tickets. */
-export function useMultiTickets(placeIds: string[]) {
+export function useMultiTickets(allIds: string[]) {
   const mock = useMock();
+  useSim();
   const [map, setMap] = useState<Record<string, Ticket[]>>({});
   const day = todayKey();
+  const placeIds = allIds.filter((id) => !sim.isSim(id));
+  const sampleIds = allIds.filter((id) => sim.isSim(id));
   const key = placeIds.join(',');
   useEffect(() => {
     if (mock || !placeIds.length) return;
@@ -220,12 +238,14 @@ export function useMultiTickets(placeIds: string[]) {
     return () => unsubs.forEach((u) => u());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, day]);
-  if (mock?.tickets) return Object.fromEntries(placeIds.map((id) => [id, mock.tickets![id] ?? []]));
-  return map;
+  if (mock?.tickets) return Object.fromEntries(allIds.map((id) => [id, mock.tickets![id] ?? []]));
+  if (!sampleIds.length) return map;
+  return { ...map, ...Object.fromEntries(sampleIds.map((id) => [id, sim.simTickets(id)])) };
 }
 
 export function useCommunity() {
   const mock = useMock();
+  useSim();
   const [places, setPlaces] = useState<CommunityPlace[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -240,6 +260,8 @@ export function useCommunity() {
       () => setLoading(false),
     );
   }, []);
+  const samples = sim.simCommunity();
+  const all = useMemo(() => (samples.length ? [...places, ...samples] : places), [places, samples]);
   if (mock) return { places: mock.community ?? [], loading: false };
-  return { places, loading };
+  return { places: all, loading: loading && !samples.length };
 }

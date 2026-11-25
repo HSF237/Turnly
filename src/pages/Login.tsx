@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams, Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Logo from '../components/Logo';
 import CategoryArt from '../components/CategoryArt';
@@ -7,10 +8,13 @@ import type { Category } from '../lib/types';
 
 const COLLAGE: Category[] = ['bank', 'barber', 'clinic', 'shop', 'government', 'restaurant'];
 import { ErrorNote, Spinner } from '../components/States';
+import { sampleBranchId } from '../lib/sim';
 import { signInWithGoogle } from '../lib/firebase';
 import { useAuth } from '../lib/hooks';
+import { useTitle } from '../lib/useTitle';
 
 export default function Login() {
+  useTitle('Sign in');
   const { isMember, loading } = useAuth();
   const [params] = useSearchParams();
   const next = params.get('next') || '/business';
@@ -21,7 +25,7 @@ export default function Login() {
   if (isMember) return <Navigate to={next} replace />;
 
   return (
-    <div className="grid min-h-[calc(100dvh-4rem)] place-items-center px-4 py-8">
+    <div className="grid min-h-[calc(100dvh-4rem)] place-items-center px-4 py-8 xl:min-h-dvh">
       <div className="grid w-full max-w-4xl items-center gap-10 md:grid-cols-2">
       <div className="relative mx-auto grid w-full max-w-sm grid-cols-3 gap-3 md:max-w-none">
         {COLLAGE.map((c, i) => (
@@ -73,6 +77,12 @@ export default function Login() {
           </svg>
           {busy ? 'Signing in…' : 'Continue with Google'}
         </button>
+        <Link
+          to={`/business/${sampleBranchId()}`}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold text-brand-700 ring-1 ring-brand-200 transition hover:bg-brand-50"
+        >
+          Just looking? Run a sample branch <ArrowRight size={15} />
+        </Link>
         {error && (
           <div className="mt-4 text-left">
             <ErrorNote message={error} />

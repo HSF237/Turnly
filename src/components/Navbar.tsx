@@ -1,6 +1,7 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Info, LogOut } from 'lucide-react';
+import { Info, LogOut, Search } from 'lucide-react';
+import { openSearch } from './CommandPalette';
 import Logo from './Logo';
 import { TABS } from './TabBar';
 import { useAuth } from '../lib/hooks';
@@ -12,7 +13,7 @@ export default function Navbar() {
   const { pathname } = useLocation();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/95 backdrop-blur-xl backdrop-saturate-150" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <header className="sticky top-0 z-40 border-b xl:hidden border-slate-200/70 bg-white/95 backdrop-blur-xl backdrop-saturate-150" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="container-x flex h-16 items-center justify-between gap-3">
         <Link to="/" aria-label="Turnly home" className="transition hover:opacity-80">
           <Logo />
@@ -42,6 +43,15 @@ export default function Navbar() {
           })}
         </nav>
         <div className="flex items-center gap-2">
+          <button
+            onClick={openSearch}
+            aria-label="Search"
+            className="flex h-10 items-center gap-2 rounded-xl px-2.5 text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-800 lg:w-44 lg:px-3"
+          >
+            <Search size={17} />
+            <span className="hidden text-sm font-medium lg:inline">Search</span>
+            <kbd className="ml-auto hidden rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 lg:inline">⌘K</kbd>
+          </button>
           {isMember ? (
             <>
               {user?.photoURL ? (

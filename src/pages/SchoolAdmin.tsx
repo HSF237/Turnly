@@ -6,8 +6,10 @@ import { ArrowUpRight, Check, Copy, DoorOpen, GraduationCap, Monitor, Users } fr
 import Aurora from '../components/Aurora';
 import { Empty, Spinner } from '../components/States';
 import { useAuth, useEventTeachers, useMultiTickets, useSchoolEvent } from '../lib/hooks';
+import { useTitle } from '../lib/useTitle';
 
 export default function SchoolAdmin() {
+  useTitle('School event');
   const { eventId } = useParams();
   const { user, isMember, loading: authLoading } = useAuth();
   const { event, loading } = useSchoolEvent(eventId);

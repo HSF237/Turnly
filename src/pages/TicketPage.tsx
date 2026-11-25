@@ -7,12 +7,14 @@ import { useAuth, useGeolocation, usePlace, useTick, useTickets } from '../lib/h
 import { formatMinutes, ticketPosition } from '../lib/predict';
 import { checkIn, deferTicket, forgetTicket, leaveQueue, markDone } from '../lib/queue';
 import SwapPanel from '../components/SwapPanel';
+import SampleNote from '../components/SampleNote';
 import Confetti from '../components/Confetti';
 import SplitFlap from '../components/SplitFlap';
 import CategoryArt from '../components/CategoryArt';
 import { buzz, chime, notify } from '../lib/speech';
 import { distanceM } from '../lib/time';
 import { travelMinutes } from '../lib/planner';
+import { useTitle } from '../lib/useTitle';
 
 function Ring({ progress, children }: { progress: number; children: React.ReactNode }) {
   const r = 108;
@@ -51,6 +53,7 @@ export default function TicketPage() {
   useTick(15000);
 
   const ticket = tickets.find((t) => t.id === ticketId) ?? null;
+  useTitle(ticket && place ? `Token ${ticket.number} · ${place.name}` : null);
   const pos = useMemo(() => (ticket && place ? ticketPosition(ticket, tickets, place) : null), [ticket, tickets, place]);
 
   // Remember how many were ahead when we first saw the ticket, for the progress ring.
@@ -106,8 +109,10 @@ export default function TicketPage() {
     }
   };
 
+  const serving = tickets.filter((t) => t.status === 'called').sort((a, b) => (a.counter ?? 0) - (b.counter ?? 0));
+
   return (
-    <div className="mx-auto max-w-md px-4 py-6">
+    <div className="mx-auto max-w-md px-4 py-6 lg:max-w-6xl lg:px-8 lg:py-10">
       {/* Your-turn overlay */}
       <AnimatePresence>
         {ticket.status === 'called' && (
@@ -144,15 +149,19 @@ export default function TicketPage() {
         )}
       </AnimatePresence>
 
+      <SampleNote placeId={place.id} mode="ticket" />
+      {/* Laptops: the token on the left (stays in view), live details on the right. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-8">
+      <div className="lg:sticky lg:top-8">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[2rem] bg-brand-800 text-white shadow-lift">
         {/* Illustrated header */}
-        <div className="relative h-32 overflow-hidden">
+        <div className="relative h-32 overflow-hidden lg:h-44">
           <CategoryArt category={place.category} className="h-full w-full" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-800/40 to-brand-800" />
           <div className="absolute inset-x-5 bottom-3 flex items-end justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-widest text-brand-100">Your token at</p>
-              <p className="truncate text-lg font-extrabold">{place.name}</p>
+              <p className="truncate text-lg font-extrabold lg:text-2xl">{place.name}</p>
             </div>
             {ticket.partySize > 1 && (
               <span className="chip shrink-0 bg-white/15 text-white ring-white/20 backdrop-blur">
@@ -161,7 +170,7 @@ export default function TicketPage() {
             )}
           </div>
         </div>
-        <div className="bg-gradient-to-b from-brand-800 to-brand-900 px-6 pb-6">
+        <div className="bg-gradient-to-b from-brand-800 to-brand-900 px-6 pb-6 lg:px-8 lg:pb-8">
         {ended ? (
           <div className="py-10 text-center">
             {ticket.status === 'done' && <Confetti />}
@@ -253,8 +262,71 @@ export default function TicketPage() {
         )}
         </div>
       </motion.div>
+      </div>
 
-      {error && <div className="mt-4"><ErrorNote message={error} /></div>}
+      <div>
+      {error && <div className="mt-4 lg:mt-0 lg:mb-4"><ErrorNote message={error} /></div>}
+
+      {/* Laptop-only: who's being served and who's ahead, at a glance */}
+      {!ended && (
+        <div className="hidden space-y-4 lg:block">
+          <div className="rounded-[2rem] bg-white p-6 shadow-soft ring-1 ring-slate-200/70">
+            <div className="flex items-baseline justify-between">
+              <p className="text-lg font-extrabold">Now serving</p>
+              <p className="text-sm text-slate-500">{place.counters} {place.counters === 1 ? 'counter' : 'counters'}</p>
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              {Array.from({ length: Math.min(place.counters, 6) }, (_, i) => i + 1).map((c) => {
+                const t = serving.find((x) => x.counter === c);
+                return (
+                  <div key={c} className={`rounded-2xl p-3 text-center ${t ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-400'}`}>
+                    <p className="text-[11px] font-bold uppercase tracking-widest opacity-70">Counter {c}</p>
+                    <AnimatePresence mode="popLayout">
+                      <motion.p
+                        key={t?.id ?? 'free'}
+                        initial={{ y: 14, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -14, opacity: 0 }}
+                        className="mt-1 text-3xl font-extrabold tabular-nums"
+                      >
+                        {t ? t.number : '—'}
+                      </motion.p>
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="rounded-[2rem] bg-white p-6 shadow-soft ring-1 ring-slate-200/70">
+            <div className="flex items-baseline justify-between">
+              <p className="text-lg font-extrabold">Ahead of you</p>
+              <p className="text-sm text-slate-500">{aheadList.length === 0 ? "You're next" : `${aheadList.length} ${aheadList.length === 1 ? 'person' : 'people'}`}</p>
+            </div>
+            <ul className="mt-3 divide-y divide-slate-100">
+              <AnimatePresence initial={false}>
+                {aheadList.slice(0, 5).map((t, i) => (
+                  <motion.li
+                    key={t.id}
+                    layout
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="flex items-center gap-3 py-2.5"
+                  >
+                    <span className="grid h-9 w-12 place-items-center rounded-xl bg-slate-100 font-extrabold tabular-nums">{t.number}</span>
+                    <span className="flex-1 text-sm font-semibold text-slate-700">{i === 0 ? 'Next up' : `${i + 1}${i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'} in line`}</span>
+                    {t.partySize > 1 && <span className="chip">+{t.partySize - 1}</span>}
+                  </motion.li>
+                ))}
+              </AnimatePresence>
+              <li className="flex items-center gap-3 py-2.5">
+                <span className="grid h-9 w-12 place-items-center rounded-xl bg-sun-400 font-extrabold tabular-nums text-slate-900">{ticket.number}</span>
+                <span className="flex-1 text-sm font-extrabold">You{aheadList.length > 5 ? ` (after ${aheadList.length - 5} more)` : ''}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      )}
 
       {!ended && (
         <div className="mt-4 space-y-3">
@@ -351,6 +423,8 @@ export default function TicketPage() {
           <p className="text-center text-xs text-slate-400">Keep this page open, or come back with the same link. It updates live.</p>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }

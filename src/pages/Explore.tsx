@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BadgeCheck, Crosshair, Flame, MessageSquarePlus, Plus, Search, Users, X } from 'lucide-react';
 import MapView from '../components/MapView';
+import CityPicker from '../components/CityPicker';
+import { CITIES, getCity, isSim } from '../lib/sim';
 import WaitBadge from '../components/WaitBadge';
 import CategoryArt from '../components/CategoryArt';
 import ReportSheet from '../components/community/ReportSheet';
@@ -14,6 +16,7 @@ import { communityEstimate } from '../lib/community';
 import { distanceM, timeAgo, todayKey } from '../lib/time';
 import { CATEGORY_META, type Category, type CommunityPlace, type Place } from '../lib/types';
 import { isOnTime } from '../lib/speed';
+import { useTitle } from '../lib/useTitle';
 
 type SortBy = 'wait' | 'distance';
 type Sel = { kind: 'official' | 'community'; id: string } | null;
@@ -22,6 +25,7 @@ type Item =
   | { kind: 'community'; id: string; c: CommunityPlace; min: number | null; dist: number | null; count: number; latest: number | null };
 
 export default function Explore() {
+  useTitle('Live map');
   useTick(30000);
   const { places, loading, error } = usePlaces();
   const { places: community } = useCommunity();
@@ -37,6 +41,18 @@ export default function Explore() {
   const [picking, setPicking] = useState(false);
   const [pickedPos, setPickedPos] = useState<{ lat: number; lng: number } | null>(null);
   const [reporting, setReporting] = useState<CommunityPlace | null>(null);
+
+  // Switching sample city: drop the old selection so the map can fly to the new city.
+  const cityId = getCity();
+  const firstCity = useRef(true);
+  useEffect(() => {
+    if (firstCity.current) {
+      firstCity.current = false;
+      return;
+    }
+    setFocus(undefined);
+    setSel(null);
+  }, [cityId]);
 
   // Deep link (?c= / ?p=): centre the map on that place once it has loaded.
   useEffect(() => {
@@ -92,13 +108,16 @@ export default function Explore() {
 
   return (
     <>
-    <div className="grid h-[calc(100dvh-4rem-1px-env(safe-area-inset-top))] grid-cols-1 grid-rows-[40dvh_minmax(0,1fr)] overflow-hidden md:grid-cols-[400px_1fr] md:grid-rows-1">
+    <div className="grid h-[calc(100dvh-4rem-1px-env(safe-area-inset-top))] grid-cols-1 xl:h-dvh lg:grid-cols-[420px_1fr] grid-rows-[40dvh_minmax(0,1fr)] overflow-hidden md:grid-cols-[400px_1fr] md:grid-rows-1">
       {/* Sidebar */}
       <aside className="order-2 flex min-h-0 min-w-0 flex-col border-r border-slate-200 bg-white md:order-1">
         <div className="space-y-3 border-b border-slate-100 p-4">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input className="input pl-9" placeholder="Search banks, barbers, offices…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="flex gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input className="input pl-9" placeholder="Search banks, barbers, offices…" value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+            <CityPicker compact />
           </div>
           <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
             <button className={`chip whitespace-nowrap ${cat === 'all' ? 'bg-slate-900 text-white ring-slate-900' : 'bg-white text-slate-600 ring-slate-200'}`} onClick={() => setCat('all')}>
@@ -160,6 +179,7 @@ export default function Explore() {
                             {it.kind === 'official' && isOnTime(it.p) && <BadgeCheck size={15} className="shrink-0 text-brand-600" />}
                           </p>
                           <p className="truncate text-xs text-slate-500">
+                            {isSim(it.id) && <span data-sample className="mr-1 rounded bg-slate-100 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-slate-400">Sample</span>}
                             {it.kind === 'official' ? CATEGORY_META[category].label : 'Community · not on Turnly yet'}
                             {it.dist !== null && ` · ${it.dist < 1000 ? `${Math.round(it.dist)} m` : `${(it.dist / 1000).toFixed(1)} km`}`}
                           </p>
@@ -219,6 +239,7 @@ export default function Explore() {
           onSelect={selectOfficial}
           onSelectCommunity={selectCommunity}
           center={focus}
+          frameNear={CITIES[cityId].center}
           me={geo.pos}
           heat={heat}
           picked={adding ? pickedPos : null}

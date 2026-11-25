@@ -3,10 +3,23 @@ import { motion } from 'framer-motion';
 import { MapPinned, Ticket } from 'lucide-react';
 import Aurora from '../components/Aurora';
 import TokenCard from '../components/TokenCard';
+import PlaceCard from '../components/PlaceCard';
+import { usePlaces } from '../lib/hooks';
+import { placeWaitMinutes } from '../lib/predict';
 import { allRememberedTickets } from '../lib/queue';
+import { useTitle } from '../lib/useTitle';
 
 export default function MyTokens() {
+  useTitle('My tokens');
   const mine = allRememberedTickets();
+  const { places } = usePlaces();
+  const joined = new Set(mine.map((m) => m.placeId));
+  const suggest = places
+    .filter((p) => p.isOpen && !joined.has(p.id))
+    .map((p) => ({ p, m: placeWaitMinutes(p) ?? 999 }))
+    .sort((a, b) => a.m - b.m)
+    .slice(0, 4)
+    .map((x) => x.p);
   return (
     <div className="relative isolate min-h-[70vh]">
       <Aurora />
@@ -30,6 +43,23 @@ export default function MyTokens() {
               <TokenCard key={m.ticketId} placeId={m.placeId} ticketId={m.ticketId} i={i} />
             ))}
           </div>
+        )}
+
+        {suggest.length > 0 && (
+          <section className="mt-12">
+            <div className="flex items-end justify-between">
+              <div>
+                <h2 className="text-2xl font-extrabold tracking-tight">{mine.length ? 'Need another stop?' : 'Shortest waits right now'}</h2>
+                <p className="text-sm text-slate-500">Join from here and keep both tokens on this page.</p>
+              </div>
+              <Link to="/explore" className="text-sm font-bold text-brand-700">Open map</Link>
+            </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {suggest.map((p, i) => (
+                <PlaceCard key={p.id} place={p} i={i} wide />
+              ))}
+            </div>
+          </section>
         )}
       </div>
     </div>

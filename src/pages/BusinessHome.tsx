@@ -6,12 +6,15 @@ import CountUp from '../components/CountUp';
 import CategoryArt from '../components/CategoryArt';
 import WaitBadge from '../components/WaitBadge';
 import { Skeleton, Spinner } from '../components/States';
-import { useAuth, useMyPlaces, useMySchoolEvents } from '../lib/hooks';
+import { sampleBranchId } from '../lib/sim';
+import { usePlace, useAuth, useMyPlaces, useMySchoolEvents } from '../lib/hooks';
 import { placeWaitMinutes } from '../lib/predict';
 import { todayKey } from '../lib/time';
 import { CATEGORY_META } from '../lib/types';
+import { useTitle } from '../lib/useTitle';
 
 export default function BusinessHome() {
+  useTitle('Your queues');
   const { user, isMember, loading } = useAuth();
   const { places, loading: loadingPlaces } = useMyPlaces(isMember ? user?.uid : undefined);
   const events = useMySchoolEvents(isMember ? user?.uid : undefined);
@@ -136,6 +139,9 @@ export default function BusinessHome() {
           </div>
         )}
 
+        {/* Sample branch to practise on */}
+        <SampleBranchCard />
+
         {/* School events */}
         {events.length > 0 && (
           <div className="mt-12">
@@ -162,5 +168,33 @@ export default function BusinessHome() {
         )}
       </div>
     </div>
+  );
+}
+
+function SampleBranchCard() {
+  const { place } = usePlace(sampleBranchId());
+  if (!place) return null;
+  const w = place.dayKey === todayKey() ? place.waiting : 0;
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8">
+      <Link
+        to={`/business/${place.id}`}
+        className="group flex flex-wrap items-center gap-5 overflow-hidden rounded-3xl bg-slate-950 p-5 text-white shadow-lift ring-1 ring-white/10 sm:flex-nowrap"
+      >
+        <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-2xl">
+          <CategoryArt category={place.category} className="h-full w-full transition duration-700 group-hover:scale-110" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-sun-300">Practise on a sample branch</p>
+          <p className="mt-1 truncate text-lg font-extrabold">{place.name}</p>
+          <p className="text-sm text-slate-400">
+            {w} waiting · {place.counters} counters · customers keep arriving. Try Call next, recall and the TV board.
+          </p>
+        </div>
+        <span className="btn bg-white px-4 py-2.5 text-slate-900 group-hover:bg-brand-50">
+          Open console <ArrowRight size={16} />
+        </span>
+      </Link>
+    </motion.div>
   );
 }

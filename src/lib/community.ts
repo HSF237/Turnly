@@ -1,5 +1,6 @@
 import { addDoc, collection, doc, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
+import { isSim, simReport } from './sim';
 import type { Category, CommunityPlace, CommunityReport } from './types';
 
 export const communityRef = (id: string) => doc(db, 'community', id);
@@ -58,6 +59,7 @@ export async function createCommunityPlace(
 
 /** Add a report, keeping only the newest few so the document stays small. */
 export async function reportWait(placeId: string, m: number, verified: boolean) {
+  if (isSim(placeId)) return simReport(placeId, m, verified);
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(communityRef(placeId));
     if (!snap.exists()) throw new Error('This place no longer exists.');

@@ -7,6 +7,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import * as sim from './sim';
 import { estimateMinutes, nextAverage } from './predict';
 import { wasOnTime } from './speed';
 import { todayKey } from './time';
@@ -60,11 +61,13 @@ export async function createPlace(ownerUid: string, input: NewPlaceInput) {
 }
 
 export async function updatePlace(placeId: string, patch: Partial<Omit<Place, 'id'>>) {
+  if (sim.isSim(placeId)) return sim.simUpdatePlace(placeId, patch as Partial<Place>);
   await updateDoc(placeRef(placeId), { ...patch, updatedAt: Date.now() });
 }
 
 /** Owner: start a fresh day if the stored counters belong to an older day. */
 export async function rollDayIfNeeded(place: Place) {
+  if (sim.isSim(place.id)) return;
   const today = todayKey();
   if (place.dayKey === today) return;
   await updateDoc(placeRef(place.id), {
@@ -84,6 +87,7 @@ export async function joinQueue(
   placeId: string,
   opts: { name: string; partySize: number; uid: string; walkIn?: boolean },
 ) {
+  if (sim.isSim(placeId)) return sim.simJoin(placeId, opts);
   const today = todayKey();
   return runTransaction(db, async (tx) => {
     const pSnap = await tx.get(placeRef(placeId));
@@ -133,6 +137,7 @@ export async function joinQueue(
  * The finished customer's serving time feeds the moving average.
  */
 export async function callNext(place: Place, tickets: Ticket[], counter: number) {
+  if (sim.isSim(place.id)) return sim.simCallNext(place.id, counter);
   const now0 = Date.now();
   const next = tickets
     .filter((t) => t.status === 'waiting' && !(t.deferUntil && t.deferUntil > now0))
@@ -179,17 +184,20 @@ export async function callNext(place: Place, tickets: Ticket[], counter: number)
 
 /** Customer: ask the person ahead to swap places. */
 export function requestSwap(placeId: string, mine: Ticket, target: Ticket) {
+  if (sim.isSim(placeId)) return sim.simRequestSwap(placeId, mine, target.id);
   return updateDoc(ticketRef(placeId, target.id), {
     swapRequest: { fromTicketId: mine.id, fromNumber: mine.number, fromName: mine.name, at: Date.now() },
   });
 }
 
 export function clearSwap(placeId: string, targetId: string) {
+  if (sim.isSim(placeId)) return sim.simClearSwap(placeId, targetId);
   return updateDoc(ticketRef(placeId, targetId), { swapRequest: null });
 }
 
 /** Customer: accept a swap. Both tokens trade numbers in one transaction. */
 export async function acceptSwap(placeId: string, mineId: string) {
+  if (sim.isSim(placeId)) return sim.simAcceptSwap(placeId, mineId);
   return runTransaction(db, async (tx) => {
     const mSnap = await tx.get(ticketRef(placeId, mineId));
     const mine = mSnap.data() as Ticket;
@@ -210,6 +218,7 @@ export async function acceptSwap(placeId: string, mineId: string) {
 
 /** Customer: "I'm busy with someone else" — go back to waiting, skipped for a few minutes. */
 export async function deferTicket(placeId: string, ticketId: string, minutes = 5) {
+  if (sim.isSim(placeId)) return sim.simDefer(placeId, ticketId, minutes);
   await runTransaction(db, async (tx) => {
     const pSnap = await tx.get(placeRef(placeId));
     const p = pSnap.data() as Omit<Place, 'id'>;
@@ -236,11 +245,13 @@ export function addKindness() {
 
 /** Staff: announce the same token again. */
 export function recall(placeId: string, ticket: Ticket) {
+  if (sim.isSim(placeId)) return sim.simRecall(placeId, ticket.id);
   return updateDoc(ticketRef(placeId, ticket.id), { announceAt: Date.now() });
 }
 
 /** Staff: finish the customer at a counter without calling anyone. */
 export async function finishCounter(place: Place, tickets: Ticket[], counter: number) {
+  if (sim.isSim(place.id)) return sim.simFinish(place.id, counter);
   const current = tickets.filter((t) => t.status === 'called' && t.counter === counter);
   if (!current.length) return;
   await runTransaction(db, async (tx) => {
@@ -258,6 +269,7 @@ export async function finishCounter(place: Place, tickets: Ticket[], counter: nu
 
 /** Staff: skip a token (no-show) or remove someone from the line. */
 export async function skipTicket(place: Place, ticket: Ticket) {
+  if (sim.isSim(place.id)) return sim.simSetStatus(place.id, ticket.id, 'skipped');
   await runTransaction(db, async (tx) => {
     const pSnap = await tx.get(placeRef(place.id));
     const p = pSnap.data() as Omit<Place, 'id'>;
@@ -272,6 +284,7 @@ export async function skipTicket(place: Place, ticket: Ticket) {
 
 /** Customer: leave the line. */
 export async function leaveQueue(placeId: string, ticketId: string) {
+  if (sim.isSim(placeId)) return sim.simSetStatus(placeId, ticketId, 'left');
   await runTransaction(db, async (tx) => {
     const pSnap = await tx.get(placeRef(placeId));
     const p = pSnap.data() as Omit<Place, 'id'>;
@@ -286,11 +299,13 @@ export async function leaveQueue(placeId: string, ticketId: string) {
 
 /** Customer: confirm arrival (only allowed inside the place's check-in radius, checked by the caller). */
 export function checkIn(placeId: string, ticketId: string) {
+  if (sim.isSim(placeId)) return sim.simCheckIn(placeId, ticketId);
   return updateDoc(ticketRef(placeId, ticketId), { checkedInAt: Date.now() });
 }
 
 /** Customer: "I'm done" — frees the counter so the queue can move. */
 export function markDone(placeId: string, ticketId: string) {
+  if (sim.isSim(placeId)) return sim.simSetStatus(placeId, ticketId, 'done');
   return updateDoc(ticketRef(placeId, ticketId), { status: 'done', doneAt: Date.now() });
 }
 
@@ -298,6 +313,7 @@ const DEMO_NAMES = ['Aisha', 'Rahul', 'Mei Ling', 'Arjun', 'Fatima', 'Daniel', '
 
 /** Staff: add test walk-ins to see the queue move (for demos and testing). */
 export async function addTestWalkIns(placeId: string, uid: string, count = 5) {
+  if (sim.isSim(placeId)) return sim.simAddWalkIns(placeId, count);
   for (let i = 0; i < count; i++) {
     const name = DEMO_NAMES[Math.floor(Math.random() * DEMO_NAMES.length)];
     await joinQueue(placeId, { name, partySize: Math.random() < 0.2 ? 3 : 1, uid, walkIn: true });

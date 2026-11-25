@@ -2,8 +2,10 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Home, Map } from 'lucide-react';
 import CategoryArt from '../components/CategoryArt';
+import { useTitle } from '../lib/useTitle';
 
 export default function NotFound() {
+  useTitle('Page not found');
   return (
     <div className="grid min-h-[75vh] place-items-center px-4 py-10">
       <div className="max-w-sm text-center">

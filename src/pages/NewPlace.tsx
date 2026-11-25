@@ -7,6 +7,7 @@ import { useAuth, useGeolocation } from '../lib/hooks';
 import { createPlace } from '../lib/queue';
 import { LANGUAGES } from '../lib/speech';
 import { CATEGORY_META, type Category } from '../lib/types';
+import { useTitle } from '../lib/useTitle';
 
 function Stepper({ value, onChange, min = 1, max = 50, suffix }: { value: number; onChange: (v: number) => void; min?: number; max?: number; suffix?: string }) {
   return (
@@ -26,6 +27,7 @@ function Stepper({ value, onChange, min = 1, max = 50, suffix }: { value: number
 }
 
 export default function NewPlace() {
+  useTitle('New queue');
   const { user, isMember, loading } = useAuth();
   const navigate = useNavigate();
   const geo = useGeolocation();

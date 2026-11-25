@@ -10,8 +10,10 @@ import { ErrorNote } from '../components/States';
 import { useGeolocation, usePlaces } from '../lib/hooks';
 import { bestPlan } from '../lib/planner';
 import { formatMinutes, placeWaitMinutes } from '../lib/predict';
-import { clock } from '../lib/time';
+import { clock, distanceM } from '../lib/time';
 import { CATEGORY_META, type Place } from '../lib/types';
+import { useTitle } from '../lib/useTitle';
+import { CITIES, getCity, isSim } from '../lib/sim';
 
 const MAX = 7;
 type Result = ReturnType<typeof bestPlan>;
@@ -55,6 +57,7 @@ function LegBar({ travel, standing, service, scale }: { travel: number; standing
 }
 
 export default function Plan() {
+  useTitle('Plan my errands');
   const { places, loading, error } = usePlaces();
   const geo = useGeolocation();
   const [q, setQ] = useState('');
@@ -63,13 +66,28 @@ export default function Plan() {
   const [result, setResult] = useState<Result | null>(null);
   const [startedAt, setStartedAt] = useState(Date.now());
 
+  // Closest first: to you if we know where you are, otherwise to the sample city.
+  const anchor = geo.pos ?? CITIES[getCity()].center;
   const open = useMemo(
     () =>
       places
         .filter((p) => p.isOpen)
-        .filter((p) => !q.trim() || `${p.name} ${p.address}`.toLowerCase().includes(q.trim().toLowerCase())),
-    [places, q],
+        .filter((p) => !q.trim() || `${p.name} ${p.address}`.toLowerCase().includes(q.trim().toLowerCase()))
+        .map((p) => ({ p, d: distanceM(anchor, p) }))
+        .sort((a, b) => a.d - b.d)
+        .map((x) => x.p),
+    [places, q, anchor.lat, anchor.lng],
   );
+  const sampleDay = () => {
+    const want = ['bank', 'pharmacy', 'government', 'barber', 'shop'];
+    const pick: Place[] = [];
+    for (const c of want) {
+      const hit = open.find((p) => isSim(p.id) && p.category === c && !pick.includes(p));
+      if (hit && pick.length < 4) pick.push(hit);
+    }
+    setResult(null);
+    setPicked(pick);
+  };
 
   const toggle = (p: Place) => {
     setResult(null);
@@ -84,7 +102,9 @@ export default function Plan() {
     setThinking(true);
     setResult(null);
     setTimeout(() => {
-      setResult(bestPlan(fresh, geo.pos));
+      // Only start from your location if you're actually near these places.
+      const from = geo.pos && fresh.some((p) => distanceM(geo.pos!, p) < 40000) ? geo.pos : null;
+      setResult(bestPlan(fresh, from));
       setStartedAt(Date.now());
       setThinking(false);
     }, 1400);
@@ -135,6 +155,11 @@ export default function Plan() {
                 <Crosshair size={16} /> {geo.pos ? 'Starting from your location' : 'Start from my location'}
               </button>
               {geo.error && <p className="text-xs text-red-600">{geo.error}</p>}
+              {picked.length === 0 && open.some((p) => isSim(p.id)) && (
+                <button className="btn w-full bg-sun-50 text-sun-800 ring-1 ring-sun-200 hover:bg-sun-100" onClick={sampleDay}>
+                  <Wand2 size={16} /> Try a sample day in {CITIES[getCity()].name}
+                </button>
+              )}
               {/* Picked chips */}
               <div className="flex min-h-[32px] flex-wrap gap-1.5">
                 <AnimatePresence>

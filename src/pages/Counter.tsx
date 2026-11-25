@@ -15,10 +15,12 @@ import {
   Printer,
   SkipForward,
   UserPlus,
+  Sparkles,
 } from 'lucide-react';
 import { Empty, ErrorNote, Spinner } from '../components/States';
 import WaitBadge from '../components/WaitBadge';
 import CategoryArt from '../components/CategoryArt';
+import { isSim, setStaff } from '../lib/sim';
 import BestTime from '../components/BestTime';
 import { useAuth, usePlace, useTick, useTickets } from '../lib/hooks';
 import { formatMinutes, placeWaitMinutes } from '../lib/predict';
@@ -35,6 +37,7 @@ import {
 import { clock, timeAgo, todayKey } from '../lib/time';
 import { isOnTime, onTimeRate } from '../lib/speed';
 import type { Place, Ticket } from '../lib/types';
+import { useTitle } from '../lib/useTitle';
 
 function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
@@ -101,14 +104,22 @@ export default function Counter() {
   const { user, isMember, loading: authLoading } = useAuth();
   const { place, loading, error } = usePlace(placeId);
   const { tickets } = useTickets(placeId);
+  useTitle(place ? `Staff · ${place.name}` : null);
   const [busy, setBusy] = useState(false);
   const [opError, setOpError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   useTick(10000);
 
+  const sample = isSim(placeId);
   useEffect(() => {
     if (place && user && place.ownerUid === user.uid) rollDayIfNeeded(place).catch(() => {});
   }, [place?.id, place?.dayKey, user?.uid]);
+  // On a sample branch, you take over the counters while this page is open.
+  useEffect(() => {
+    if (!sample || !placeId) return;
+    setStaff(placeId, true);
+    return () => setStaff(placeId, false);
+  }, [placeId, sample]);
 
 
   // Keyboard: press 1–9 to call the next person at that counter.
@@ -120,7 +131,7 @@ export default function Counter() {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return;
       const d = Number(e.key);
       const { place: p, tickets: ts, uid } = keyRef.current;
-      if (!p || !d || d > p.counters || p.ownerUid !== uid) return;
+      if (!p || !d || d > p.counters || (p.ownerUid !== uid && !isSim(p.id))) return;
       e.preventDefault();
       const any = ts.some((t) => t.status === 'waiting');
       (any ? callNext(p, ts, d) : finishCounter(p, ts, d)).catch(() => {});
@@ -136,11 +147,11 @@ export default function Counter() {
     return m;
   }, [tickets]);
 
-  if (authLoading || loading) return <Spinner />;
-  if (!isMember) return <Navigate to={`/login?next=/business/${placeId}`} replace />;
+  if ((authLoading && !sample) || loading) return <Spinner />;
+  if (!isMember && !sample) return <Navigate to={`/login?next=/business/${placeId}`} replace />;
   if (error) return <div className="container-x py-10"><ErrorNote message={error} /></div>;
   if (!place) return <Empty title="Queue not found" action={<Link className="btn-ghost" to="/business">Back to my queues</Link>} />;
-  if (place.ownerUid !== user!.uid) return <Empty title="This isn't your queue">Only the owner can run its counter.</Empty>;
+  if (!sample && place.ownerUid !== user!.uid) return <Empty title="This isn't your queue">Only the owner can run its counter.</Empty>;
 
   const joinUrl = `${window.location.origin}/q/${place.id}`;
   const today = todayKey();
@@ -203,6 +214,23 @@ export default function Counter() {
       </div>
 
       {opError && <div className="mt-4"><ErrorNote message={opError} /></div>}
+
+      {sample && (
+        <motion.div
+          data-sample
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl bg-gradient-to-r from-sun-50 to-amber-50 px-4 py-3 text-sm ring-1 ring-sun-200"
+        >
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-sun-400 text-slate-900">
+            <Sparkles size={16} />
+          </span>
+          <p className="min-w-0 flex-1 text-slate-700">
+            <b className="text-slate-900">You're running a sample branch.</b> New customers walk in about every 20 seconds. Press{' '}
+            <b>Call next</b>, or open <b>TV mode</b> in another window and watch the token fly to its counter.
+          </p>
+        </motion.div>
+      )}
 
       {/* Stats */}
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -339,7 +367,7 @@ export default function Counter() {
           <div className="card">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
               <p className="font-bold">In line ({waiting.length})</p>
-              <button className="btn-soft py-1.5 text-xs" disabled={busy || !place.isOpen} onClick={() => run(() => addTestWalkIns(place.id, user!.uid, 5))}>
+              <button className="btn-soft py-1.5 text-xs" disabled={busy || !place.isOpen} onClick={() => run(() => addTestWalkIns(place.id, user?.uid ?? 'staff', 5))}>
                 <FlaskConical size={14} /> Add 5 test people
               </button>
             </div>
@@ -385,7 +413,7 @@ export default function Counter() {
 
         {/* Side column */}
         <div className="space-y-6">
-          <WalkInForm place={place} uid={user!.uid} />
+          <WalkInForm place={place} uid={user?.uid ?? 'staff'} />
           <BestTime place={place} />
           <div className="card p-5">
             <p className="font-bold">Customers join here</p>
