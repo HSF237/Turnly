@@ -6,6 +6,7 @@ import TabBar from './components/TabBar';
 import Splash from './components/Splash';
 import ScrollProgress from './components/ScrollProgress';
 import Landing from './pages/Landing';
+import Home from './pages/Home';
 import Explore from './pages/Explore';
 import Login from './pages/Login';
 import BusinessHome from './pages/BusinessHome';
@@ -48,7 +49,8 @@ export default function App() {
           className={bare || fullHeight ? '' : 'pb-24 md:pb-0'}
         >
           <Routes location={location}>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<Landing />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/plan" element={<Plan />} />
             <Route path="/me" element={<MyTokens />} />

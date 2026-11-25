@@ -57,7 +57,7 @@ export default function Landing() {
               </span>
               Google Maps for waiting
             </motion.span>
-            <h1 className="mt-5 text-[2.6rem] font-extrabold leading-[1.02] tracking-tight text-slate-900 sm:text-[3.6rem] xl:text-[4rem]">
+            <h1 className="mt-5 text-[2.25rem] font-extrabold leading-[1.04] tracking-tight text-slate-900 sm:text-[3.6rem] xl:text-[4rem]">
               {HEADLINE.map((w, i) => (
                 <motion.span key={w} variants={fade} initial="hidden" animate="show" custom={i + 1} className="mr-[0.25em] inline-block">
                   {w}
@@ -108,23 +108,33 @@ export default function Landing() {
                 </Link>
               </Magnetic>
             </motion.div>
+            {(servedToday > 0 || waitingNow > 0) && (
             <motion.div variants={fade} initial="hidden" animate="show" custom={9} className="mt-10 flex flex-wrap gap-8">
+              {servedToday > 0 && (
               <div>
                 <p className="text-3xl font-extrabold text-slate-900">
                   <CountUp value={servedToday} />
                 </p>
                 <p className="text-sm text-slate-500">served today without standing</p>
               </div>
-              <div className="hidden h-12 w-px bg-slate-200 sm:block" />
+              )}
+              {servedToday > 0 && waitingNow > 0 && <div className="hidden h-12 w-px bg-slate-200 sm:block" />}
+              {waitingNow > 0 && (
               <div>
                 <p className="text-3xl font-extrabold text-slate-900">
                   <CountUp value={waitingNow} />
                 </p>
                 <p className="text-sm text-slate-500">waiting from anywhere right now</p>
               </div>
+              )}
             </motion.div>
+            )}
           </div>
-          <LiveQueueDemo />
+          <div className="-mx-4 h-[455px] overflow-hidden sm:mx-0 sm:h-auto sm:overflow-visible">
+            <div className="origin-top scale-[0.86] sm:scale-100">
+              <LiveQueueDemo />
+            </div>
+          </div>
         </div>
 
         {/* Marquee of places */}

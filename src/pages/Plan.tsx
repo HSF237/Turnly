@@ -5,6 +5,7 @@ import { Check, Crosshair, Footprints, Hourglass, Search, Sparkles, TrendingDown
 import Aurora from '../components/Aurora';
 import MapView from '../components/MapView';
 import WaitBadge from '../components/WaitBadge';
+import CategoryArt from '../components/CategoryArt';
 import { ErrorNote } from '../components/States';
 import { useGeolocation, usePlaces } from '../lib/hooks';
 import { bestPlan } from '../lib/planner';
@@ -169,6 +170,9 @@ export default function Plan() {
                   >
                     <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md ring-1 transition ${on ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white ring-slate-300'}`}>
                       {on && <Check size={14} />}
+                    </span>
+                    <span className="block h-10 w-10 shrink-0 overflow-hidden rounded-xl">
+                      <CategoryArt category={p.category} className="h-full w-full scale-[1.4]" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold">{p.name}</span>

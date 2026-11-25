@@ -4,15 +4,15 @@ import { Smartphone, User } from 'lucide-react';
 
 const PEOPLE = 9;
 
-function Person({ i, p }: { i: number; p: MotionValue<number> }) {
-  const offset = (i - (PEOPLE - 1) / 2) * 64;
+function Person({ i, p, gap }: { i: number; p: MotionValue<number>; gap: number }) {
+  const offset = (i - (PEOPLE - 1) / 2) * gap;
   const x = useTransform(p, [0.15, 0.6], [offset, 0]);
   const y = useTransform(p, [0.15, 0.6], [0, -10]);
   const scale = useTransform(p, [0.15, 0.6], [1, 0.2]);
   const opacity = useTransform(p, [0.45, 0.62], [1, 0]);
   return (
-    <motion.div style={{ x, y, scale, opacity }} className="absolute left-1/2 top-1/2 -ml-6 -mt-6">
-      <div className={`grid h-12 w-12 place-items-center rounded-2xl ${i === 6 ? 'bg-sun-400 text-slate-900' : 'bg-white/10 text-slate-300'}`}>
+    <motion.div style={{ x, y, scale, opacity }} className="absolute left-1/2 top-1/2 -ml-5 -mt-5 sm:-ml-6 sm:-mt-6">
+      <div className={`grid h-10 w-10 place-items-center rounded-2xl sm:h-12 sm:w-12 ${i === 6 ? 'bg-sun-400 text-slate-900' : 'bg-white/10 text-slate-300'}`}>
         <User size={22} />
       </div>
     </motion.div>
@@ -28,6 +28,7 @@ export default function ScrollStory() {
   const t1 = useTransform(p, [0, 0.12, 0.4, 0.5], [0, 1, 1, 0]);
   const t2 = useTransform(p, [0.62, 0.75], [0, 1]);
   const barW = useTransform(p, [0, 1], ['0%', '100%']);
+  const gap = typeof window !== 'undefined' ? Math.min(64, (window.innerWidth - 56) / PEOPLE) : 64;
 
   return (
     <section ref={ref} className="relative h-[220vh]">
@@ -35,16 +36,16 @@ export default function ScrollStory() {
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-[36rem] w-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-600/25 blur-[120px]" />
         <div className="container-x relative">
           <div className="relative h-40">
-            <motion.h2 style={{ opacity: t1 }} className="absolute inset-x-0 text-center text-4xl font-extrabold tracking-tight sm:text-6xl">
+            <motion.h2 style={{ opacity: t1 }} className="absolute inset-x-0 text-center text-3xl font-extrabold tracking-tight sm:text-6xl">
               Today, waiting looks like <span className="text-slate-400">this.</span>
             </motion.h2>
-            <motion.h2 style={{ opacity: t2 }} className="absolute inset-x-0 text-center text-4xl font-extrabold tracking-tight sm:text-6xl">
+            <motion.h2 style={{ opacity: t2 }} className="absolute inset-x-0 text-center text-3xl font-extrabold tracking-tight sm:text-6xl">
               With Turnly, it looks like <span className="text-brand-400">this.</span>
             </motion.h2>
           </div>
           <div className="relative mx-auto h-64 max-w-3xl">
             {Array.from({ length: PEOPLE }, (_, i) => (
-              <Person key={i} i={i} p={p} />
+              <Person key={i} i={i} p={p} gap={gap} />
             ))}
             <motion.div style={{ scale: phoneScale, opacity: phoneOpacity }} className="absolute left-1/2 top-1/2 -ml-20 -mt-36 w-40">
               <div className="rounded-[2rem] bg-slate-800 p-1.5 shadow-[0_30px_80px_-20px_rgba(14,165,143,.7)] ring-1 ring-white/20">

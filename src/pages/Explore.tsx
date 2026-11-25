@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Crosshair, Search, Users, X } from 'lucide-react';
 import MapView from '../components/MapView';
 import WaitBadge from '../components/WaitBadge';
+import CategoryArt from '../components/CategoryArt';
 import { ErrorNote } from '../components/States';
 import { useGeolocation, usePlaces } from '../lib/hooks';
 import { placeWaitMinutes } from '../lib/predict';
@@ -15,8 +16,9 @@ type SortBy = 'wait' | 'distance';
 export default function Explore() {
   const { places, loading, error } = usePlaces();
   const geo = useGeolocation();
-  const [q, setQ] = useState('');
-  const [cat, setCat] = useState<Category | 'all'>('all');
+  const [params] = useSearchParams();
+  const [q, setQ] = useState(params.get('q') ?? '');
+  const [cat, setCat] = useState<Category | 'all'>((params.get('cat') as Category | null) ?? 'all');
   const [sort, setSort] = useState<SortBy>('wait');
   const [selected, setSelected] = useState<Place | null>(null);
   const [focus, setFocus] = useState<{ lat: number; lng: number } | undefined>(undefined);
@@ -39,14 +41,14 @@ export default function Explore() {
     setFocus({ lat: p.lat, lng: p.lng });
   }, []);
 
-  const usedCats = Array.from(new Set(places.map((p) => p.category)));
+  const usedCats = Array.from(new Set([...places.map((p) => p.category), ...(cat !== 'all' ? [cat] : [])]));
   const today = todayKey();
   const live = selected ? places.find((p) => p.id === selected.id) ?? selected : null;
 
   return (
-    <div className="grid h-[calc(100dvh-4rem)] md:grid-cols-[400px_1fr]">
+    <div className="grid h-[calc(100dvh-4rem-1px)] grid-cols-1 grid-rows-[45dvh_minmax(0,1fr)] overflow-hidden md:grid-cols-[400px_1fr] md:grid-rows-1">
       {/* Sidebar */}
-      <aside className="order-2 flex min-h-0 flex-col border-r border-slate-200 bg-white md:order-1">
+      <aside className="order-2 flex min-h-0 min-w-0 flex-col border-r border-slate-200 bg-white md:order-1">
         <div className="space-y-3 border-b border-slate-100 p-4">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -81,7 +83,7 @@ export default function Explore() {
                 </button>
               ))}
             </div>
-            <span className="text-slate-400">{list.length} places</span>
+            <span className="text-slate-400">{list.length} {list.length === 1 ? "place" : "places"}</span>
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-28 md:pb-3">
@@ -105,7 +107,9 @@ export default function Explore() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 gap-3">
-                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-lg">{CATEGORY_META[p.category].emoji}</span>
+                      <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-2xl ring-1 ring-black/5">
+                        <CategoryArt category={p.category} className="h-full w-full scale-[1.4]" />
+                      </span>
                       <div className="min-w-0">
                         <p className="truncate font-bold text-slate-900">{p.name}</p>
                         <p className="truncate text-xs text-slate-500">
@@ -144,9 +148,13 @@ export default function Explore() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="card absolute inset-x-3 bottom-3 p-4 md:inset-x-auto md:right-4 md:w-96"
+              className="card absolute inset-x-3 bottom-3 overflow-hidden p-4 pt-0 md:inset-x-auto md:right-4 md:w-96"
             >
-              <button className="absolute right-3 top-3 rounded-lg p-1 text-slate-400 hover:bg-slate-100" onClick={() => setSelected(null)}>
+              <div className="relative -mx-4 mb-3 h-28 overflow-hidden">
+                <CategoryArt category={live.category} className="h-full w-full" />
+                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-transparent" />
+              </div>
+              <button className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/90 text-slate-500 shadow-soft hover:bg-white" onClick={() => setSelected(null)}>
                 <X size={16} />
               </button>
               <p className="text-xs font-semibold text-slate-500">

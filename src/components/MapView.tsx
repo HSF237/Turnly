@@ -96,6 +96,20 @@ export default function MapView({ places = [], center, zoom = 13, selectedId, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // First time places arrive (and no explicit centre): frame them all.
+  const framed = useRef(false);
+  useEffect(() => {
+    const m = map.current;
+    if (!m || framed.current || center || picked || !places.length || route) return;
+    framed.current = true;
+    if (places.length === 1) m.jumpTo({ center: [places[0].lng, places[0].lat], zoom: 14 });
+    else {
+      const b = new maplibregl.LngLatBounds();
+      places.forEach((p) => b.extend([p.lng, p.lat]));
+      m.fitBounds(b, { padding: 70, maxZoom: 15, duration: 0 });
+    }
+  }, [places.length]);
+
   useEffect(() => {
     if (center && map.current) map.current.flyTo({ center: [center.lng, center.lat], zoom: Math.max(map.current.getZoom(), 14), speed: 1.4 });
   }, [center?.lat, center?.lng]);

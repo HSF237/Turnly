@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, GraduationCap, Monitor, Plus, Store, Users } from 'lucide-react';
 import Aurora from '../components/Aurora';
 import CountUp from '../components/CountUp';
+import CategoryArt from '../components/CategoryArt';
 import WaitBadge from '../components/WaitBadge';
 import { Skeleton, Spinner } from '../components/States';
 import { useAuth, useMyPlaces, useMySchoolEvents } from '../lib/hooks';
@@ -98,8 +99,9 @@ export default function BusinessHome() {
               return (
                 <motion.div key={p.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }} whileHover={{ y: -6 }}>
                   <Link to={`/business/${p.id}`} className="card group block overflow-hidden transition-shadow hover:shadow-lift">
-                    <div className="relative h-24 overflow-hidden bg-gradient-to-br from-brand-500 to-brand-800">
-                      <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(white_1px,transparent_1px)] [background-size:14px_14px]" />
+                    <div className="relative h-32 overflow-hidden">
+                      <CategoryArt category={p.category} className="h-full w-full transition duration-700 group-hover:scale-110" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
                       <span className="absolute -bottom-6 left-5 grid h-14 w-14 place-items-center rounded-2xl bg-white text-2xl shadow-soft transition group-hover:scale-110 group-hover:-rotate-6">
                         {CATEGORY_META[p.category].emoji}
                       </span>

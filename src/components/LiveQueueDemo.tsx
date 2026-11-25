@@ -173,14 +173,14 @@ export default function LiveQueueDemo() {
         initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.6, duration: 0.6 }}
-        className="absolute left-0 top-10 z-10 w-[230px] rounded-2xl bg-white/90 p-3 shadow-lift ring-1 ring-slate-200/70 backdrop-blur sm:-left-6"
+        className="absolute left-0 top-10 z-10 w-[190px] rounded-2xl sm:w-[230px] bg-white/90 p-3 shadow-lift ring-1 ring-slate-200/70 backdrop-blur sm:-left-6"
       >
         <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">
           <Users size={12} /> In line, live
         </p>
         <div className="mt-2 flex gap-1.5 overflow-hidden">
           <AnimatePresence initial={false} mode="popLayout">
-            {s.queue.slice(0, 5).map((n) => (
+            {s.queue.slice(0, 4).map((n) => (
               <motion.span
                 key={n}
                 layout
@@ -204,7 +204,7 @@ export default function LiveQueueDemo() {
         initial={{ opacity: 0, x: 30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.8, duration: 0.6 }}
-        className="absolute bottom-6 right-0 z-10 w-[220px] rounded-2xl bg-slate-900 p-4 text-white shadow-lift sm:-right-6"
+        className="absolute bottom-6 right-0 z-10 w-[190px] rounded-2xl sm:w-[220px] bg-slate-900 p-4 text-white shadow-lift sm:-right-6"
       >
         <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Counter 2 · staff</p>
         <div className="mt-1 flex items-baseline justify-between">

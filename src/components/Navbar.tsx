@@ -1,6 +1,6 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut } from 'lucide-react';
+import { Info, LogOut } from 'lucide-react';
 import Logo from './Logo';
 import { TABS } from './TabBar';
 import { useAuth } from '../lib/hooks';
@@ -12,13 +12,13 @@ export default function Navbar() {
   const { pathname } = useLocation();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/95 backdrop-blur-xl backdrop-saturate-150">
       <div className="container-x flex h-16 items-center justify-between gap-3">
         <Link to="/" aria-label="Turnly home" className="transition hover:opacity-80">
           <Logo />
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
-          {TABS.slice(1).map(({ to, label, icon: Icon }) => {
+          {[...TABS.slice(1), { to: '/about', label: 'About', icon: Info }].map(({ to, label, icon: Icon }) => {
             const active = pathname.startsWith(to);
             return (
               <NavLink

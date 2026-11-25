@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Clock, MapPin, Minus, Plus, User, Users } from 'lucide-react';
 import Aurora from '../components/Aurora';
+import CategoryArt from '../components/CategoryArt';
 import WaitBadge from '../components/WaitBadge';
 import PrintTicket from '../components/PrintTicket';
 import { Empty, ErrorNote, Spinner } from '../components/States';
@@ -66,23 +67,27 @@ export default function Join() {
       <Aurora />
       {printed && <PrintTicket number={printed.number} placeName={place.name} name={name || 'Guest'} />}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden">
-        <div className="bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white">
-          <p className="text-sm font-semibold text-brand-100">
+        <div className="relative isolate overflow-hidden bg-slate-900 p-6 pt-28 text-white">
+          <div className="absolute inset-0 -z-10">
+            <CategoryArt category={place.category} className="h-full w-full" />
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-950/10 via-slate-950/60 to-slate-950/95" />
+          </div>
+          <span className="chip bg-white/15 text-white ring-white/20 backdrop-blur">
             {CATEGORY_META[place.category].emoji} {CATEGORY_META[place.category].label}
-          </p>
-          <h1 className="mt-1 text-2xl font-extrabold">{place.name}</h1>
+          </span>
+          <h1 className="mt-2 text-3xl font-extrabold leading-tight">{place.name}</h1>
           {place.address && (
-            <p className="mt-1 flex items-center gap-1 text-sm text-brand-100">
+            <p className="mt-1 flex items-center gap-1 text-sm text-slate-300">
               <MapPin size={14} /> {place.address}
             </p>
           )}
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-white/10 p-3">
-              <p className="flex items-center gap-1 text-xs text-brand-100"><Users size={12} /> In line now</p>
+            <div className="rounded-2xl bg-white/10 p-3 ring-1 ring-white/10 backdrop-blur">
+              <p className="flex items-center gap-1 text-xs text-slate-300"><Users size={12} /> In line now</p>
               <p className="text-3xl font-extrabold">{waiting}</p>
             </div>
-            <div className="rounded-2xl bg-white/10 p-3">
-              <p className="flex items-center gap-1 text-xs text-brand-100"><Clock size={12} /> Your wait</p>
+            <div className="rounded-2xl bg-white/10 p-3 ring-1 ring-white/10 backdrop-blur">
+              <p className="flex items-center gap-1 text-xs text-slate-300"><Clock size={12} /> Your wait</p>
               <p className="text-3xl font-extrabold">{minutes === null ? '—' : formatMinutes(minutes)}</p>
             </div>
           </div>
@@ -99,7 +104,7 @@ export default function Join() {
                 <User size={14} />
               </motion.span>
             ))}
-            {waiting > 9 && <span className="text-xs font-bold text-brand-100">+{waiting - 9}</span>}
+            {waiting > 9 && <span className="text-xs font-bold text-slate-300">+{waiting - 9}</span>}
             <motion.span
               initial={{ opacity: 0, scale: 0.4 }}
               animate={{ opacity: 1, scale: [1, 1.15, 1] }}
