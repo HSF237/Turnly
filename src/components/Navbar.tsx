@@ -19,12 +19,13 @@ export default function Navbar() {
           <Logo />
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
-          {[...TABS.slice(1), { to: '/about', label: 'About', icon: Info }].map(({ to, label, icon: Icon }) => {
-            const active = pathname.startsWith(to);
+          {[...TABS, { to: '/about', label: 'About', icon: Info }].map(({ to, label, icon: Icon }) => {
+            const active = to === '/' ? pathname === '/' : pathname.startsWith(to);
             return (
               <NavLink
                 key={to}
                 to={to}
+                title={label}
                 className={`relative inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition ${
                   active ? 'text-brand-700' : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -37,7 +38,7 @@ export default function Navbar() {
                   />
                 )}
                 <Icon size={16} className="relative" />
-                <span className="relative">{label}</span>
+                <span className="relative hidden lg:inline">{label}</span>
               </NavLink>
             );
           })}
@@ -73,7 +74,7 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <Link to="/login" className="btn-dark py-2">
+            <Link to="/login" className="btn-dark whitespace-nowrap py-2">
               Sign in
             </Link>
           )}

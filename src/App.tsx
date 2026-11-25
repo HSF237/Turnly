@@ -1,12 +1,13 @@
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import TabBar from './components/TabBar';
 import Splash from './components/Splash';
 import Onboarding from './components/Onboarding';
 import ScrollProgress from './components/ScrollProgress';
 import CommandPalette from './components/CommandPalette';
+import { useAuth } from './lib/hooks';
 import OfflineBanner from './components/OfflineBanner';
 import Landing from './pages/Landing';
 import Home from './pages/Home';
@@ -37,6 +38,25 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [location.pathname]);
+
+  // Signed-in users start on the live map: when a new tab or the installed app opens on "/",
+  // go straight to /explore. Clicking Home later still shows the home page.
+  const { isMember, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const firstPath = useRef(location.pathname);
+  const startDone = useRef(false);
+  useEffect(() => {
+    if (startDone.current || authLoading) return;
+    startDone.current = true;
+    let seen = false;
+    try {
+      seen = !!sessionStorage.getItem('turnly:started');
+      sessionStorage.setItem('turnly:started', '1');
+    } catch {
+      /* storage blocked */
+    }
+    if (isMember && !seen && firstPath.current === '/' && window.location.pathname === '/') navigate('/explore', { replace: true });
+  }, [authLoading, isMember]);
 
   return (
     <MotionConfig reducedMotion="user">

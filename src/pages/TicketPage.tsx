@@ -151,7 +151,7 @@ export default function TicketPage() {
 
       <SampleNote placeId={place.id} mode="ticket" />
       {/* Laptops: the token on the left (stays in view), live details on the right. */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-8">
+      <div className={ended ? 'mx-auto max-w-md' : 'lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-8'}>
       <div className="lg:sticky lg:top-8">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[2rem] bg-brand-800 text-white shadow-lift">
         {/* Illustrated header */}
